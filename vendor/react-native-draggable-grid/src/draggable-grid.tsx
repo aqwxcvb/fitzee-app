@@ -226,12 +226,17 @@ const DraggableGridComponent = function<T extends BaseItemType>({
                          return orderMap.current.get(String(a.key))! - orderMap.current.get(String(b.key))!;
                      });
                      onDragRelease?.(sorted);
-                     setInternalData(sorted); 
+                     setInternalData(sorted);
+                     
+                     // Reset active item AFTER animation completes
+                     setActiveItemKey(undefined);
+                     activeItemKeyRef.current = undefined;
                 });
             }
+        } else {
+            setActiveItemKey(undefined);
+            activeItemKeyRef.current = undefined;
         }
-        setActiveItemKey(undefined);
-        activeItemKeyRef.current = undefined;
         isDraggingRef.current = false;
     };
 
@@ -316,50 +321,57 @@ const DraggableGridComponent = function<T extends BaseItemType>({
                 onLayout={onLayout}
                 {...panResponder.panHandlers}
             >
-                {internalData.map((item) => {
-                const key = String(item.key);
-                const anim = itemAnims.current.get(key) || new Animated.ValueXY({x:0, y:0});
-                const isActive = activeItemKey === key;
-                
-                if (!itemAnims.current.has(key)) {
-                    const index = internalData.indexOf(item);
-                    const pos = getPositionByIndex(index);
-                    anim.setValue(pos);
-                    itemAnims.current.set(key, anim);
-                }
+                {internalData
+                    .slice()
+                    .sort((a, b) => {
+                        if (String(a.key) === activeItemKey) return 1;
+                        if (String(b.key) === activeItemKey) return -1;
+                        return 0;
+                    })
+                    .map((item) => {
+                    const key = String(item.key);
+                    const isActive = activeItemKey === key;
+                    const anim = itemAnims.current.get(key) || new Animated.ValueXY({x:0, y:0});
+                    
+                    if (!itemAnims.current.has(key)) {
+                        const index = internalData.indexOf(item);
+                        const pos = getPositionByIndex(index);
+                        anim.setValue(pos);
+                        itemAnims.current.set(key, anim);
+                    }
 
-                const shouldEnableJiggle = enableJiggle && !item.disabledDrag;
-                const showDeleteButton = !!renderDeleteButton && !item.disabledDrag;
-                return (
-                    <Block
-                        key={key}
-                        onPress={() => handlePress(item)}
-                        onLongPress={() => handleLongPress(item)}
-                        delayLongPress={delayLongPress}
-                        
-                        style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: blockWidth,
-                            height: blockHeight,
-                            zIndex: isActive ? 999 : 1,
-                            transform: [
-                                { translateX: anim.x },
-                                { translateY: anim.y }
-                            ],
-                        }}
-                        dragStartAnimationStyle={isActive && dragStartAnimation ? dragStartAnimation : undefined}
-                        isEditMode={isEditMode}
-                        enableJiggle={shouldEnableJiggle}
-                        showDeleteButton={showDeleteButton}
-                        renderDeleteButton={renderDeleteButton ? () => renderDeleteButton(item, () => onItemDelete?.(item)) : undefined}
-                        onDelete={() => onItemDelete?.(item)}
-                    >
-                        {renderItem(item, orderMap.current.get(key) || 0)}
-                    </Block>
-                );
-            })}
+                    const shouldEnableJiggle = enableJiggle && !item.disabledDrag;
+                    const showDeleteButton = !!renderDeleteButton && !item.disabledDrag;
+                    return (
+                        <Block
+                            key={key}
+                            onPress={() => handlePress(item)}
+                            onLongPress={() => handleLongPress(item)}
+                            delayLongPress={delayLongPress}
+                            
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: blockWidth,
+                                height: blockHeight,
+                                zIndex: isActive ? 999 : 1,
+                                transform: [
+                                    { translateX: anim.x },
+                                    { translateY: anim.y }
+                                ],
+                            }}
+                            dragStartAnimationStyle={isActive && dragStartAnimation ? dragStartAnimation : undefined}
+                            isEditMode={isEditMode}
+                            enableJiggle={shouldEnableJiggle}
+                            showDeleteButton={showDeleteButton}
+                            renderDeleteButton={renderDeleteButton ? () => renderDeleteButton(item, () => onItemDelete?.(item)) : undefined}
+                            onDelete={() => onItemDelete?.(item)}
+                        >
+                            {renderItem(item, orderMap.current.get(key) || 0)}
+                        </Block>
+                    );
+                })}
             </AnimatedView>
         </PressableComponent>
     );
