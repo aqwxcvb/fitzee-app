@@ -5,7 +5,6 @@ import {
     PanResponder,
     Pressable,
     StyleSheet,
-    View,
 } from "react-native";
 import { Block } from "./block";
 import { BaseItemType, DraggableGridProps, DraggableGridRef } from "./types";
@@ -21,7 +20,6 @@ const DraggableGridComponent = function<T extends BaseItemType>({
     onDragStart,
     onDragging,
     onDragRelease,
-    onResetSort,
     onItemDelete,
     onEditModeChange,
     numColumns,
@@ -95,59 +93,7 @@ const DraggableGridComponent = function<T extends BaseItemType>({
         onEditModeChange?.(false);
     }, [onEditModeChange]);
 
-    useImperativeHandle(ref, () => ({
-        exitEditMode,
-    }), [exitEditMode]);
-
-    // PanResponder
-    const panResponder = useMemo(() => PanResponder.create({
-        onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (_, gestureState) => {
-            // Capture if we have an active item and actually moving
-            const isDragging = !!activeItemKeyRef.current;
-            const isMoving = Math.abs(gestureState.dx) > 2 || Math.abs(gestureState.dy) > 2;
-            return isDragging && isMoving;
-        },
-        onPanResponderGrant: (_, gestureState) => {
-             if (!activeItemKeyRef.current) return;
-             
-             isDraggingRef.current = true;
-             const key = activeItemKeyRef.current;
-             const anim = itemAnims.current.get(key);
-             const currentOrder = orderMap.current.get(key);
-             
-             if (anim && currentOrder !== undefined) {
-                 const slotPos = getPositionByIndex(currentOrder);
-                 anim.setOffset({ x: slotPos.x, y: slotPos.y });
-                 anim.setValue({ x: 0, y: 0 });
-                 
-                 onDragStart?.(itemsMap.current.get(key)!);
-             }
-        },
-        onPanResponderMove: (_, gestureState) => {
-            if (!activeItemKeyRef.current) return;
-            const key = activeItemKeyRef.current;
-            const anim = itemAnims.current.get(key);
-            
-            if (anim) {
-                anim.setValue({ x: gestureState.dx, y: gestureState.dy });
-                
-                const currentX = (anim.x as any)._value + (anim.x as any)._offset;
-                const currentY = (anim.y as any)._value + (anim.y as any)._offset;
-                
-                handleReorder(key, currentX, currentY);
-            }
-            onDragging?.(gestureState);
-        },
-        onPanResponderRelease: () => {
-            finishDrag();
-        },
-        onPanResponderTerminate: () => {
-            finishDrag();
-        },
-    }), [blockWidth, blockHeight, numColumns]); 
-
-    const handleReorder = (activeKey: string, x: number, y: number) => {
+    const handleReorder = useCallback((activeKey: string, x: number, y: number) => {
         if (!blockWidth || !blockHeight) return;
         
         const col = Math.floor((x + blockWidth / 2) / blockWidth);
@@ -207,7 +153,91 @@ const DraggableGridComponent = function<T extends BaseItemType>({
                 }
             });
         }
-    };
+    }, [blockWidth, blockHeight, internalData.length, numColumns]);
+
+    const applyScrollOffset = useCallback((deltaY: number) => {
+        if (!deltaY) return;
+        if (!isDraggingRef.current) return;
+        const key = activeItemKeyRef.current;
+        if (!key) return;
+        const anim = itemAnims.current.get(key);
+        if (!anim) return;
+
+        // When the ScrollView scrolls, the grid moves relative to the screen.
+        // To keep the dragged item visually at the same screen position,
+        // we need to adjust the offset (the reference point in grid coordinates).
+        const currentXOffset = (anim.x as any)._offset;
+        const currentYOffset = (anim.y as any)._offset;
+        const currentXValue = (anim.x as any)._value;
+        const currentYValue = (anim.y as any)._value;
+
+        // Update the offset to compensate for the scroll
+        anim.setOffset({ x: currentXOffset, y: currentYOffset + deltaY });
+
+        // Recalculate position for reordering
+        const currentX = currentXValue + currentXOffset;
+        const currentY = currentYValue + currentYOffset + deltaY;
+        handleReorder(key, currentX, currentY);
+    }, [handleReorder]);
+
+    useImperativeHandle(ref, () => ({
+        exitEditMode,
+        applyScrollOffset,
+    }), [exitEditMode, applyScrollOffset]);
+
+    // PanResponder
+    const panResponder = useMemo(() => PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) => {
+            // Capture if we have an active item and actually moving
+            const isDragging = !!activeItemKeyRef.current;
+            const isMoving = Math.abs(gestureState.dx) > 2 || Math.abs(gestureState.dy) > 2;
+            return isDragging && isMoving;
+        },
+        // Prevent other responders from stealing the gesture while dragging
+        onPanResponderTerminationRequest: () => !isDraggingRef.current,
+        onShouldBlockNativeResponder: () => isDraggingRef.current,
+        onPanResponderGrant: (_, gestureState) => {
+             if (!activeItemKeyRef.current) return;
+             
+             isDraggingRef.current = true;
+             const key = activeItemKeyRef.current;
+             const anim = itemAnims.current.get(key);
+             const currentOrder = orderMap.current.get(key);
+             
+             if (anim && currentOrder !== undefined) {
+                 const slotPos = getPositionByIndex(currentOrder);
+                 anim.setOffset({ x: slotPos.x, y: slotPos.y });
+                 anim.setValue({ x: 0, y: 0 });
+                 
+                 onDragStart?.(itemsMap.current.get(key)!);
+             }
+        },
+        onPanResponderMove: (_, gestureState) => {
+            if (!activeItemKeyRef.current) return;
+            const key = activeItemKeyRef.current;
+            const anim = itemAnims.current.get(key);
+            
+            if (anim) {
+                anim.setValue({ x: gestureState.dx, y: gestureState.dy });
+                
+                const currentX = (anim.x as any)._value + (anim.x as any)._offset;
+                const currentY = (anim.y as any)._value + (anim.y as any)._offset;
+                
+                handleReorder(key, currentX, currentY);
+            }
+            onDragging?.(gestureState);
+        },
+        onPanResponderRelease: () => {
+            finishDrag();
+        },
+        onPanResponderTerminate: () => {
+            // Only finish if we're actually dragging - prevents accidental releases
+            if (isDraggingRef.current) {
+                finishDrag();
+            }
+        },
+    }), [blockWidth, blockHeight, numColumns, handleReorder]); 
 
     const finishDrag = () => {
         const key = activeItemKeyRef.current;
@@ -259,14 +289,6 @@ const DraggableGridComponent = function<T extends BaseItemType>({
         }
     };
 
-    // Edit Mode Outside Tap Handler
-    const handleContainerPress = () => {
-        if (isEditMode) {
-             setIsEditMode(false);
-             onEditModeChange?.(false);
-        }
-    };
-
     const onLayout = (event: LayoutChangeEvent) => {
         const { width, height } = event.nativeEvent.layout;
         setContainerLayout({ width, height });
@@ -278,7 +300,6 @@ const DraggableGridComponent = function<T extends BaseItemType>({
 
     const AnimatedView = Animated.View as any;
     const PressableComponent = Pressable as any;
-    const ViewComponent = View as any;
 
     // Check if a touch point is inside any item
     const isTouchInsideItem = (x: number, y: number): boolean => {

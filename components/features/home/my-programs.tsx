@@ -1,8 +1,9 @@
+import { useAutoScroll } from "@/contexts/auto-scroll-context";
 import { useTranslation } from "@/i18n";
 import { Monicon } from "@monicon/native";
 import * as Haptics from "expo-haptics";
-import { useCallback, useRef, useState } from "react";
-import { Dimensions, Pressable, Text, TouchableOpacity, useColorScheme, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Dimensions, PanResponderGestureState, Pressable, Text, TouchableOpacity, useColorScheme, View } from "react-native";
 import { DraggableGrid, DraggableGridRef } from "react-native-draggable-grid";
 
 interface Program {
@@ -26,6 +27,7 @@ interface MyProgramsProps {
 }
 
 export function MyPrograms({ onChangeScrollEnable }: MyProgramsProps) {
+    const { handleDragMove, handleDragEnd, registerScrollOffsetHandler } = useAutoScroll();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const iconColor = isDark ? "white" : "black";
@@ -34,11 +36,29 @@ export function MyPrograms({ onChangeScrollEnable }: MyProgramsProps) {
     const [programs, setPrograms] = useState<Program[]>([
         { key: "1", id: "1", name: "Full Body", sessions: 3 },
         { key: "2", id: "2", name: "PPL", sessions: 3 },
+        { key: "3", id: "3", name: "Split", sessions: 3 },
+        { key: "4", id: "4", name: "Upper Body", sessions: 3 },
+        { key: "5", id: "5", name: "Lower Body", sessions: 3 },
+        { key: "6", id: "6", name: "Core", sessions: 3 },
+        { key: "7", id: "7", name: "Cardio", sessions: 3 },
+        { key: "8", id: "8", name: "Flexibility", sessions: 3 },
+        { key: "9", id: "9", name: "Strength", sessions: 3 },
+        { key: "10", id: "10", name: "Endurance", sessions: 3 },
         { key: "add-button", id: "add-button", name: "", sessions: 0, isAddButton: true, disabledDrag: true, disabledReSorted: true },
     ]);
 
     const gridRef = useRef<DraggableGridRef>(null);
     const [isEditMode, setIsEditMode] = useState(false);
+
+    // Enregistre le handler pour compenser le scroll pendant le drag
+    useEffect(() => {
+        registerScrollOffsetHandler((deltaY: number) => {
+            gridRef.current?.applyScrollOffset(deltaY);
+        });
+        return () => {
+            registerScrollOffsetHandler(null);
+        };
+    }, [registerScrollOffsetHandler]);
 
     const renderItem = useCallback((item: Program) => {
         if (item.isAddButton) {
@@ -108,7 +128,12 @@ export function MyPrograms({ onChangeScrollEnable }: MyProgramsProps) {
         const addButton = data.find(item => item?.isAddButton);
         const programsWithoutButton = data.filter(item => item && !item.isAddButton);
         setPrograms(addButton ? [...programsWithoutButton, addButton] : programsWithoutButton);
-    }, [onChangeScrollEnable]);
+        handleDragEnd();
+    }, [onChangeScrollEnable, handleDragEnd]);
+
+    const onDragging = useCallback((gestureState: PanResponderGestureState) => {
+        handleDragMove(gestureState);
+    }, [handleDragMove]);
 
     const handleEditModeChange = useCallback((editMode: boolean) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
@@ -145,6 +170,7 @@ export function MyPrograms({ onChangeScrollEnable }: MyProgramsProps) {
                 data={programs}
                 enableJiggle={true}
                 onDragStart={handleDragStart}
+                onDragging={onDragging}
                 onDragRelease={handleDragRelease}
                 onEditModeChange={handleEditModeChange}
                 onItemDelete={handleDeleteProgram}
