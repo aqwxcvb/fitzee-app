@@ -28,11 +28,12 @@ export default function RootLayout() {
     const colorScheme = useColorScheme();
     const { setColorScheme } = useTailwindColorScheme();
     const [fontsLoaded, fontError] = useFonts({
-        // Geist (police principale - sans-serif)
-        "Geist-Regular": require("../assets/fonts/Geist-Regular.ttf"),
-        "Geist-Medium": require("../assets/fonts/Geist-Medium.ttf"),
-        "Geist-SemiBold": require("../assets/fonts/Geist-SemiBold.ttf"),
-        "Geist-Bold": require("../assets/fonts/Geist-Bold.ttf"),
+        "SFPro-Regular": require("../assets/fonts/SF-Pro-Text-Regular.otf"),
+        "SFPro-Medium": require("../assets/fonts/SF-Pro-Text-Medium.otf"),
+        "SFPro-Semibold": require("../assets/fonts/SF-Pro-Text-Semibold.otf"),
+        "SFPro-Bold": require("../assets/fonts/SF-Pro-Text-Bold.otf"),
+        "SFPro-Display-Bold": require("../assets/fonts/SF-Pro-Display-Bold.otf"),
+
         // Playfair Display (serif)
         "PlayfairDisplay-Regular": PlayfairDisplay_400Regular,
         "PlayfairDisplay-Medium": PlayfairDisplay_500Medium,

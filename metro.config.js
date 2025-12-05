@@ -63,6 +63,11 @@ const configWithMonicon = withMonicon(nativeWindConfig, {
         "solar:user-bold",
         "solar:dumbbell-small-outline",
         "solar:clipboard-linear",
+        // Program Builder
+        "solar:clipboard-list-outline",
+        "solar:check-circle-bold",
+        "solar:close-circle-bold",
+        "solar:list-bold",
     ],
 });
 

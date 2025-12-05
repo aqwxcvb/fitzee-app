@@ -1,5 +1,11 @@
 import { Children, cloneElement, isValidElement, useEffect } from "react";
-import { Dimensions, Modal, Pressable, View } from "react-native";
+import {
+    Dimensions,
+    Modal,
+    Pressable,
+    useColorScheme,
+    View,
+} from "react-native";
 import {
     Gesture,
     GestureDetector,
@@ -42,6 +48,9 @@ export function BottomSheetModal({
     dismissThreshold = DEFAULT_DISMISS_THRESHOLD,
     enableDrag = true,
 }: BottomSheetModalProps) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
+
     const translateY = useSharedValue(DEFAULT_CLOSE_OFFSET);
 
     useEffect(() => {
@@ -94,6 +103,24 @@ export function BottomSheetModal({
         };
     });
 
+    const lightSheetShadow = {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 20,
+        elevation: 12,
+    };
+
+    const darkSheetShadow = {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 18,
+        elevation: 10,
+    };
+
+    const sheetShadow = isDark ? darkSheetShadow : lightSheetShadow;
+
     if (!visible) return null;
 
     return (
@@ -106,6 +133,7 @@ export function BottomSheetModal({
         >
             <GestureHandlerRootView style={{ flex: 1 }}>
                 <View className="flex-1 justify-end">
+                    {/* Overlay */}
                     <Animated.View
                         className="absolute inset-0 bg-black/60"
                         style={overlayStyle}
@@ -113,18 +141,19 @@ export function BottomSheetModal({
                         <Pressable className="flex-1" onPress={closeWithAnimation} />
                     </Animated.View>
 
+                    {/* Bottom sheet */}
                     <Animated.View
-                        style={sheetStyle}
-                        className="bg-foreground-light dark:bg-foreground-dark rounded-t-[32px] pb-8 pt-3 shadow-2xl"
+                        style={[sheetStyle, sheetShadow, { borderTopLeftRadius: 32, borderTopRightRadius: 32, borderTopWidth: 0.5, borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)" }]}
+                        className="bg-foreground-light dark:bg-foreground-dark pb-8 pt-3"
                     >
                         {enableDrag && (
                             <GestureDetector gesture={panGesture}>
                                 <Animated.View className="pb-4 items-center">
-                                    <View className="w-9 h-1.5 rounded-full bg-[#d1d1d6] dark:bg-[#3a3a3c]" />
+                                    <View className="w-9 h-1.5 rounded-full bg-accent-light dark:bg-accent-dark" />
                                 </Animated.View>
                             </GestureDetector>
                         )}
-                        
+
                         {Children.map(children, (child) =>
                             isValidElement(child)
                                 ? cloneElement(child, { closeWithAnimation } as any)
@@ -136,4 +165,3 @@ export function BottomSheetModal({
         </Modal>
     );
 }
-

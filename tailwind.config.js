@@ -8,92 +8,24 @@ module.exports = {
     darkMode: "class",
     theme: {
         extend: {
-            /*colors: {
-                // Couleurs de base
-                background: {
-                    light: "#fafafa",
-                    dark: "#010101",
-                },
-                foreground: {
-                    light: "#3a3a3c",
-                    dark: "#ffffff",
-                },
-                // Couleurs primaires
-                primary: {
-                    DEFAULT: "#ff3b30",
-                    foreground: "#ffffff",
-                },
-                // Couleurs secondaires
-                secondary: {
-                    light: "#f2f2f5",
-                    dark: "#2c2c2f",
-                    "foreground-light": "#3a3a3c",
-                    "foreground-dark": "#ffffff",
-                },
-                // Couleurs muted
-                muted: {
-                    light: "#fafafa",
-                    dark: "#010101",
-                    foreground: "#8e8e93",
-                },
-                // Couleurs accent
-                accent: {
-                    light: "#ffffff",
-                    dark: "#1c1c1e",
-                    "foreground-light": "#3a3a3c",
-                    "foreground-dark": "#ffffff",
-                },
-                // Couleurs destructive
-                destructive: {
-                    DEFAULT: "#ff3b30",
-                    foreground: "#ffffff",
-                },
-                // Couleurs card
-                card: {
-                    light: "#f7f7fa",
-                    dark: "#1c1c1e",
-                    "dark-alt": "#252527",
-                    "foreground-light": "#3a3a3c",
-                    "foreground-dark": "#ffffff",
-                },
-                // Couleurs popover
-                popover: {
-                    light: "#ffffff",
-                    dark: "#1c1c1e",
-                    "foreground-light": "#3a3a3c",
-                    "foreground-dark": "#ffffff",
-                },
-                // Couleurs border
-                border: {
-                    light: "#f5f5f7",
-                    dark: "#202022",
-                },
-                // Couleurs input
-                input: {
-                    light: "#ffffff",
-                    dark: "#1c1c1e",
-                },
-                // Couleurs ring
-                ring: {
-                    light: "#000000",
-                    dark: "#000000",
-                },
-            },*/
             colors: {
-                primary: "#ff3b30",
-                
+                primary: {
+                    light: "#007AFF",
+                    dark: "#0A84FF",
+                },
+
                 base: {
-                    light: "#f2f2f7",
-                    dark: "#010101",
+                    light: "#f2f2f6",
+                    dark: "#111113",
                 },
 
                 foreground: {
-                    light: "#ffffff",
-                    dark: "#1a1a1c",
+                    light: "#f2f2f6",
+                    dark: "#1c1c1e", 
                 },
-            
+
                 surface: {
-                    light: "#fafafa",
+                    light: "#ffffff",
                     dark: "#1c1c1e",
 
                     modal: {
@@ -101,30 +33,35 @@ module.exports = {
                         dark: "#252527",
                     },
                 },
-            
+
                 accent: {
-                    light: "#e5e5ea",
+                    light: "#efeff0",
                     dark: "#2c2c2f",
                 },
 
                 stroke: {
-                    primary: "#ff3b2f",
-
-                    light: "#e5e5ea",
-                    dark: "#2C2C2E",
+                    primary: {
+                        light: "#007AFF",
+                        dark: "#0A84FF",
+                    }
                 },
 
                 content: {
-                    "DEFAULT": "#8e8e93",
-                }
+                    light: "#636366",
+                    dark: "#8e8e93",
+
+                    strong: "#1c1c1e", 
+                    inverse: "#f2f2f7",
+                },
             },
             fontFamily: {
-                "geist": ["Geist-Regular"],
-                "geist-medium": ["Geist-Medium"],
-                "geist-semibold": ["Geist-SemiBold"],
-                "geist-bold": ["Geist-Bold"],
-                "playfair": ["PlayfairDisplay-Regular"],
-                "jetbrains": ["JetBrainsMono-Regular"],
+                sfpro: ["SFPro-Regular"],
+                "sfpro-medium": ["SFPro-Medium"],
+                "sfpro-semibold": ["SFPro-Semibold"],
+                "sfpro-bold": ["SFPro-Bold"],
+                "sfpro-display-bold": ["SFPro-Display-Bold"],
+                playfair: ["PlayfairDisplay-Regular"],
+                jetbrains: ["JetBrainsMono-Regular"],
             },
         },
     },
