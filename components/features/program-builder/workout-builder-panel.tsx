@@ -26,13 +26,15 @@ const GroupContent = memo(({
     isDark, 
     shadow,
     onChildrenReorder,
-    onItemDragOutside
+    onItemDragOutside,
+    onChildDelete
 }: {
     group: Exercise;
     isDark: boolean;
     shadow: ViewStyle;
     onChildrenReorder: (groupKey: string, newChildren: Exercise[]) => void;
     onItemDragOutside: (groupKey: string, item: Exercise) => void;
+    onChildDelete: (groupKey: string, item: Exercise) => void;
 }) => {
     const handleDragRelease = useCallback((newData: Exercise[]) => {
         onChildrenReorder(group.key, newData);
@@ -41,6 +43,10 @@ const GroupContent = memo(({
     const handleDragOutside = useCallback((item: Exercise) => {
         onItemDragOutside(group.key, item);
     }, [group.key, onItemDragOutside]);
+
+    const handleItemDelete = useCallback((item: Exercise) => {
+        onChildDelete(group.key, item);
+    }, [group.key, onChildDelete]);
     
     const renderChildItem = useCallback((child: Exercise, childIdx: number) => (
         <View className="p-3 rounded-xl bg-surface-light dark:bg-surface-dark mx-1 my-0.5">
@@ -54,6 +60,15 @@ const GroupContent = memo(({
                 </View>
             </View>
         </View>
+    ), []);
+
+    const renderDeleteButton = useCallback((_: Exercise, onDelete: () => void) => (
+        <TouchableOpacity
+            onPress={onDelete}
+            className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 items-center justify-center"
+        >
+            <Monicon name="solar:close-circle-bold" size={14} color="#fff" />
+        </TouchableOpacity>
     ), []);
     
     if (!group.children) return null;
@@ -73,6 +88,8 @@ const GroupContent = memo(({
                     numColumns={1}
                     itemHeight={itemHeight}
                     renderItem={renderChildItem}
+                    renderDeleteButton={renderDeleteButton}
+                    onItemDelete={handleItemDelete}
                     enableJiggle={false}
                     enableGrouping={false}
                     onDragRelease={handleDragRelease}
@@ -176,6 +193,39 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
         });
     }, [setExercises]);
 
+    const handleChildDelete = useCallback((groupKey: string, item: Exercise) => {
+        setExercises(prev => {
+            // Trouver le groupe
+            const groupIndex = prev.findIndex(e => e.key === groupKey);
+            if (groupIndex === -1) return prev;
+            
+            const group = prev[groupIndex];
+            if (!group.children) return prev;
+            
+            // Retirer l'item du groupe
+            const newChildren = group.children.filter(c => c.key !== item.key);
+            
+            // Si le groupe n'a plus qu'un seul élément, le dissoudre
+            if (newChildren.length <= 1) {
+                const remainingItem = newChildren[0];
+                const newExercises = [...prev];
+                // Remplacer le groupe par l'item restant (s'il y en a un)
+                if (remainingItem) {
+                    newExercises.splice(groupIndex, 1, remainingItem);
+                } else {
+                    // Si le groupe est vide, le supprimer
+                    newExercises.splice(groupIndex, 1);
+                }
+                return newExercises;
+            }
+            
+            // Sinon, mettre à jour le groupe
+            const newExercises = [...prev];
+            newExercises[groupIndex] = { ...group, children: newChildren };
+            return newExercises;
+        });
+    }, [setExercises]);
+
     const handleGroupCreate = useCallback((items: Exercise[], targetItem: Exercise) => {        
         setExercises(prev => {
             // Trouver les clés des items à grouper
@@ -227,6 +277,7 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
                     shadow={shadow}
                     onChildrenReorder={handleChildrenReorder}
                     onItemDragOutside={handleItemDragOutside}
+                    onChildDelete={handleChildDelete}
                 />
             );
         }
@@ -245,7 +296,7 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
                 </View>
             </View>
         );
-    }, [shadow, isDark, handleChildrenReorder, handleItemDragOutside]);
+    }, [shadow, isDark, handleChildrenReorder, handleItemDragOutside, handleChildDelete]);
 
     const renderDeleteButton = useCallback((_: Exercise, onDelete: () => void) => (
         <TouchableOpacity
