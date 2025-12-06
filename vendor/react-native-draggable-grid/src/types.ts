@@ -28,5 +28,7 @@ export interface DraggableGridProps<T extends BaseItemType> {
     enableJiggle?: boolean;
     onItemDelete?: (item: T) => void;
     renderDeleteButton?: (item: T, onDelete: () => void) => React.ReactElement;
+    enableGrouping?: boolean;
+    onGroupCreate?: (items: T[], targetItem: T) => void;
 }
 

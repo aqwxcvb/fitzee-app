@@ -26,6 +26,7 @@ const DraggableGridComponent = function<T extends BaseItemType>({
     itemHeight,
     dragStartAnimation,
     enableJiggle = true,
+    enableGrouping = false,
     delayLongPress = 200,
 }: DraggableGridProps<T> & { ref?: React.Ref<DraggableGridRef> }, ref: React.Ref<DraggableGridRef>) {
     // State
@@ -35,6 +36,7 @@ const DraggableGridComponent = function<T extends BaseItemType>({
     const [blockHeight, setBlockHeight] = useState(0);
     const [internalData, setInternalData] = useState<T[]>(data);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [groupedItemKey, setGroupedItemKey] = useState<string | undefined>(undefined);
 
     // Refs
     const itemsMap = useRef<Map<string, T>>(new Map());
@@ -42,6 +44,11 @@ const DraggableGridComponent = function<T extends BaseItemType>({
     const itemAnims = useRef<Map<string, Animated.ValueXY>>(new Map());
     const activeItemKeyRef = useRef<string | undefined>(undefined);
     const isDraggingRef = useRef(false);
+    const initialDragPositionRef = useRef<{ x: number; y: number } | null>(null);
+    const hoveredItemKeyRef = useRef<string | undefined>(undefined);
+    const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const handleHoverRef = useRef<(activeKey: string, x: number, y: number) => void>(() => {});
+    const handleReorderRef = useRef<(activeKey: string, x: number, y: number) => void>(() => {});
 
     // Helper: Get block position by index
     const getPositionByIndex = (index: number) => {
@@ -93,8 +100,84 @@ const DraggableGridComponent = function<T extends BaseItemType>({
         onEditModeChange?.(false);
     }, [onEditModeChange]);
 
-    const handleReorder = useCallback((activeKey: string, x: number, y: number) => {
-        if (!blockWidth || !blockHeight) return;
+    // Helper pour trouver la clé par ordre
+    const getKeyByOrder = (order: number) => {
+        let foundKey: string | undefined;
+        orderMap.current.forEach((val, key) => {
+            if (val === order) foundKey = key;
+        });
+        return foundKey;
+    };
+
+    // Fonction pour gérer le survol et l'effet de groupe
+    const handleHover = (activeKey: string, x: number, y: number) => {
+        if (!enableGrouping || !blockWidth || !blockHeight) {
+            return;
+        }
+
+        // Calculer quelle cellule on survole
+        const col = Math.floor((x + blockWidth / 2) / blockWidth);
+        const row = Math.floor((y + blockHeight / 2) / blockHeight);
+        let hoveredOrder = row * numColumns + col;
+        hoveredOrder = Math.max(0, Math.min(internalData.length - 1, hoveredOrder));
+
+        const targetKey = getKeyByOrder(hoveredOrder);
+
+        // Ne pas traiter si on survole l'élément actif lui-même ou s'il n'y a pas de cible
+        if (!targetKey || targetKey === activeKey) {
+            // Réinitialiser le survol
+            if (hoverTimerRef.current) {
+                clearTimeout(hoverTimerRef.current);
+                hoverTimerRef.current = null;
+            }
+            if (hoveredItemKeyRef.current) {
+                hoveredItemKeyRef.current = undefined;
+                setGroupedItemKey(undefined);
+            }
+            return;
+        }
+
+        const targetPos = getPositionByIndex(hoveredOrder);
+
+        // Vérifier si le centre de l'élément dragué survole le centre de l'élément cible
+        const draggedCenterX = x + blockWidth / 2;
+        const draggedCenterY = y + blockHeight / 2;
+        const targetCenterX = targetPos.x + blockWidth / 2;
+        const targetCenterY = targetPos.y + blockHeight / 2;
+        const isHoveringCenter = 
+            Math.abs(draggedCenterX - targetCenterX) < blockWidth * 0.4 && 
+            Math.abs(draggedCenterY - targetCenterY) < blockHeight * 0.4;
+
+        if (isHoveringCenter) {
+            // On survole le centre
+            if (hoveredItemKeyRef.current !== targetKey) {
+                // Nouvel élément survolé
+                if (hoverTimerRef.current) {
+                    clearTimeout(hoverTimerRef.current);
+                }
+                hoveredItemKeyRef.current = targetKey;
+                setGroupedItemKey(undefined);
+                
+                hoverTimerRef.current = setTimeout(() => {
+                    setGroupedItemKey(targetKey);
+                }, 300);
+            }
+        } else {
+            // On n'est pas au centre
+            if (hoverTimerRef.current) {
+                clearTimeout(hoverTimerRef.current);
+                hoverTimerRef.current = null;
+            }
+            hoveredItemKeyRef.current = undefined;
+            setGroupedItemKey(undefined);
+        }
+    };
+
+    // Fonction pour gérer la réorganisation
+    const handleReorder = (activeKey: string, x: number, y: number) => {
+        if (!blockWidth || !blockHeight) {
+            return;
+        }
         
         const col = Math.floor((x + blockWidth / 2) / blockWidth);
         const row = Math.floor((y + blockHeight / 2) / blockHeight);
@@ -104,19 +187,56 @@ const DraggableGridComponent = function<T extends BaseItemType>({
         
         const oldOrder = orderMap.current.get(activeKey);
 
-        // Check if target position is occupied by a fixed item
-        const getKeyByOrder = (order: number) => {
-            let foundKey: string | undefined;
-            orderMap.current.forEach((val, key) => {
-                if (val === order) foundKey = key;
-            });
-            return foundKey;
-        };
-
         const targetKey = getKeyByOrder(newOrder);
         if (targetKey) {
             const targetItem = itemsMap.current.get(targetKey);
             if (targetItem?.disabledReSorted) return;
+        }
+        
+        // Mode grouping : ne réorganiser que si on dépasse les bordures
+        if (enableGrouping && targetKey && targetKey !== activeKey && oldOrder !== undefined) {
+            const targetPos = getPositionByIndex(newOrder);
+            const initialPos = initialDragPositionRef.current;
+            
+            if (!initialPos) {
+                return;
+            }
+            
+            const deltaX = Math.abs(x - initialPos.x);
+            const deltaY = Math.abs(y - initialPos.y);
+            const isHorizontalMovement = deltaX > deltaY;
+            
+            let hasPassedBorder = false;
+            
+            if (isHorizontalMovement) {
+                if (oldOrder < newOrder) {
+                    hasPassedBorder = x >= targetPos.x + blockWidth;
+                } else {
+                    hasPassedBorder = x <= targetPos.x;
+                }
+            } else {
+                if (oldOrder < newOrder) {
+                    hasPassedBorder = (y + blockHeight) >= (targetPos.y + blockHeight);
+                } else {
+                    hasPassedBorder = y <= targetPos.y;
+                }
+            }
+            
+            if (!hasPassedBorder) {
+                return; // Ne pas réorganiser tant qu'on n'a pas dépassé la bordure
+            }
+            
+            // On a dépassé la bordure, réinitialiser le survol
+            if (hoverTimerRef.current) {
+                clearTimeout(hoverTimerRef.current);
+                hoverTimerRef.current = null;
+            }
+            hoveredItemKeyRef.current = undefined;
+            setGroupedItemKey(undefined);
+            
+            // Mettre à jour la position initiale après réorganisation
+            const newActivePos = getPositionByIndex(newOrder);
+            initialDragPositionRef.current = { x: newActivePos.x, y: newActivePos.y };
         }
         
         if (newOrder !== oldOrder && oldOrder !== undefined) {
@@ -153,7 +273,11 @@ const DraggableGridComponent = function<T extends BaseItemType>({
                 }
             });
         }
-    }, [blockWidth, blockHeight, internalData.length, numColumns]);
+    };
+
+    // Mettre à jour les refs pour éviter la recréation du panResponder
+    handleHoverRef.current = handleHover;
+    handleReorderRef.current = handleReorder;
 
     const applyScrollOffset = useCallback((deltaY: number) => {
         if (!deltaY) return;
@@ -177,8 +301,9 @@ const DraggableGridComponent = function<T extends BaseItemType>({
         // Recalculate position for reordering
         const currentX = currentXValue + currentXOffset;
         const currentY = currentYValue + currentYOffset + deltaY;
-        handleReorder(key, currentX, currentY);
-    }, [handleReorder]);
+        handleHoverRef.current(key, currentX, currentY);
+        handleReorderRef.current(key, currentX, currentY);
+    }, []);
 
     useImperativeHandle(ref, () => ({
         exitEditMode,
@@ -198,7 +323,9 @@ const DraggableGridComponent = function<T extends BaseItemType>({
         onPanResponderTerminationRequest: () => !isDraggingRef.current,
         onShouldBlockNativeResponder: () => isDraggingRef.current,
         onPanResponderGrant: (_, gestureState) => {
-             if (!activeItemKeyRef.current) return;
+             if(!activeItemKeyRef.current) {
+                return;
+             }
              
              isDraggingRef.current = true;
              const key = activeItemKeyRef.current;
@@ -210,22 +337,39 @@ const DraggableGridComponent = function<T extends BaseItemType>({
                  anim.setOffset({ x: slotPos.x, y: slotPos.y });
                  anim.setValue({ x: 0, y: 0 });
                  
+                 // Stocker la position initiale pour détecter la direction
+                 initialDragPositionRef.current = { x: slotPos.x, y: slotPos.y };
+                 hoveredItemKeyRef.current = undefined;
+                 
+                 // Réinitialiser l'effet de groupe
+                 if (hoverTimerRef.current) {
+                     clearTimeout(hoverTimerRef.current);
+                     hoverTimerRef.current = null;
+                 }
+                 setGroupedItemKey(undefined);
+                 
                  onDragStart?.(itemsMap.current.get(key)!);
              }
         },
         onPanResponderMove: (_, gestureState) => {
-            if (!activeItemKeyRef.current) return;
+            if(!activeItemKeyRef.current) {
+                return;
+            }
+
             const key = activeItemKeyRef.current;
             const anim = itemAnims.current.get(key);
             
-            if (anim) {
+            if(anim) {
                 anim.setValue({ x: gestureState.dx, y: gestureState.dy });
                 
                 const currentX = (anim.x as any)._value + (anim.x as any)._offset;
                 const currentY = (anim.y as any)._value + (anim.y as any)._offset;
                 
-                handleReorder(key, currentX, currentY);
+                // Appeler les deux logiques via refs pour éviter la recréation du panResponder
+                handleHoverRef.current(key, currentX, currentY);
+                handleReorderRef.current(key, currentX, currentY);
             }
+
             onDragging?.(gestureState);
         },
         onPanResponderRelease: () => {
@@ -237,7 +381,7 @@ const DraggableGridComponent = function<T extends BaseItemType>({
                 finishDrag();
             }
         },
-    }), [blockWidth, blockHeight, numColumns, handleReorder]); 
+    }), [blockWidth, blockHeight, numColumns]); 
 
     const finishDrag = () => {
         const key = activeItemKeyRef.current;
@@ -268,11 +412,20 @@ const DraggableGridComponent = function<T extends BaseItemType>({
             activeItemKeyRef.current = undefined;
         }
         isDraggingRef.current = false;
+        initialDragPositionRef.current = null;
+        hoveredItemKeyRef.current = undefined;
+        if (hoverTimerRef.current) {
+            clearTimeout(hoverTimerRef.current);
+            hoverTimerRef.current = null;
+        }
+        setGroupedItemKey(undefined);
     };
 
     const handleLongPress = (item: T) => {
-        if (item.disabledDrag) return;
-        
+        if(item.disabledDrag) {
+            return;
+        }
+
         setIsEditMode(true);
         onEditModeChange?.(true);
         
@@ -363,6 +516,7 @@ const DraggableGridComponent = function<T extends BaseItemType>({
 
                     const shouldEnableJiggle = enableJiggle && !item.disabledDrag;
                     const showDeleteButton = !!renderDeleteButton && !item.disabledDrag;
+                    const isGrouped = enableGrouping && groupedItemKey === key;
                     return (
                         <Block
                             key={key}
@@ -388,6 +542,7 @@ const DraggableGridComponent = function<T extends BaseItemType>({
                             showDeleteButton={showDeleteButton}
                             renderDeleteButton={renderDeleteButton ? () => renderDeleteButton(item, () => onItemDelete?.(item)) : undefined}
                             onDelete={() => onItemDelete?.(item)}
+                            isGrouped={isGrouped}
                         >
                             {renderItem(item, orderMap.current.get(key) || 0)}
                         </Block>

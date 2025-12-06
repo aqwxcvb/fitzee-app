@@ -25,6 +25,7 @@ interface BlockProps {
     showDeleteButton?: boolean;
     renderDeleteButton?: () => React.ReactElement;
     onDelete?: () => void;
+    isGrouped?: boolean;
 }
 
 const JIGGLE_DURATION = 100;
@@ -42,9 +43,11 @@ export const Block: React.FC<BlockProps> = ({
     enableJiggle,
     showDeleteButton,
     renderDeleteButton,
+    isGrouped = false,
 }) => {
     const jiggleAnim = useRef(new Animated.Value(0)).current;
     const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+    const scaleAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         if (isEditMode && enableJiggle) {
@@ -85,6 +88,24 @@ export const Block: React.FC<BlockProps> = ({
         };
     }, [isEditMode, enableJiggle]);
 
+    useEffect(() => {
+        if (isGrouped) {
+            Animated.spring(scaleAnim, {
+                toValue: 1.15,
+                friction: 4,
+                tension: 40,
+                useNativeDriver: false,
+            }).start();
+        } else {
+            Animated.spring(scaleAnim, {
+                toValue: 1,
+                friction: 4,
+                tension: 40,
+                useNativeDriver: false,
+            }).start();
+        }
+    }, [isGrouped]);
+
     const jiggleStyle = {
         transform: [
             {
@@ -95,6 +116,18 @@ export const Block: React.FC<BlockProps> = ({
             },
         ],
     };
+
+    // Combiner les transforms pour éviter qu'ils s'écrasent
+    const combinedTransform = [];
+    if (isEditMode && enableJiggle) {
+        combinedTransform.push({
+            rotate: jiggleAnim.interpolate({
+                inputRange: [-1, 1],
+                outputRange: [`-${JIGGLE_ANGLE}deg`, `${JIGGLE_ANGLE}deg`],
+            }),
+        });
+    }
+    combinedTransform.push({ scale: scaleAnim });
 
     const AnimatedView = Animated.View as any;
     const PressableComponent = Pressable as any;
@@ -116,7 +149,9 @@ export const Block: React.FC<BlockProps> = ({
                 <AnimatedView
                     style={[
                         styles.innerContainer,
-                        isEditMode && enableJiggle ? jiggleStyle : undefined
+                        {
+                            transform: combinedTransform,
+                        }
                     ]}
                 >
                     <PressableComponent

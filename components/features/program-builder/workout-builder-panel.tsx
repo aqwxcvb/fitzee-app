@@ -53,6 +53,12 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
         setExercises(prev => prev.filter(e => e.key !== ex.key));
     }, [setExercises]);
 
+    const handleGroupCreate = useCallback((items: Exercise[], targetItem: Exercise) => {
+        console.log("🎯 Groupe créé avec:", items.map(i => i.name));
+        // TODO: Implémenter la logique de création de groupe/superset
+        // Pour l'instant, on log juste pour tester que ça fonctionne
+    }, []);
+
     const renderItem = useCallback((item: Exercise, idx: number) => (
         <View className="flex-1 m-2 p-4 rounded-2xl bg-surface-light dark:bg-surface-dark" style={shadow}>
             <View className="flex-row items-center gap-3">
@@ -91,6 +97,8 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
                 renderItem={renderItem}
                 renderDeleteButton={renderDeleteButton}
                 enableJiggle={false}
+                enableGrouping={true}
+                onGroupCreate={handleGroupCreate}
                 onDragStart={handleDragStart}
                 onDragging={handleDragMove}
                 onDragRelease={handleDragRelease}
