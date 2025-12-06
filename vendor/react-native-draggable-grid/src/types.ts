@@ -18,11 +18,13 @@ export interface DraggableGridProps<T extends BaseItemType> {
     renderItem: (item: T, order: number) => React.ReactElement;
     style?: ViewStyle;
     itemHeight?: number;
+    getItemHeight?: (item: T) => number;
     dragStartAnimation?: StyleProp<ViewStyle>;
     onItemPress?: (item: T) => void;
     onDragStart?: (item: T) => void;
     onDragging?: (gestureState: PanResponderGestureState) => void;
     onDragRelease?: (newSortedData: T[]) => void;
+    onDragOutside?: (item: T) => void;
     delayLongPress?: number;
     onEditModeChange?: (isEditMode: boolean) => void;
     enableJiggle?: boolean;

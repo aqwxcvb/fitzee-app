@@ -10,6 +10,9 @@ export interface Exercise {
     name: string;
     muscle: string;
     icon: string;
+    // Pour les groupes (supersets)
+    type?: 'exercise' | 'group';
+    children?: Exercise[];
 }
 
 // Mock data

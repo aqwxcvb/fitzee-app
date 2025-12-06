@@ -20,6 +20,70 @@ const getShadow = (isDark: boolean): ViewStyle => ({
     shadowRadius: 8,
 });
 
+// Composant pour le contenu d'un groupe avec drag and drop interne
+const GroupContent = memo(({ 
+    group, 
+    isDark, 
+    shadow,
+    onChildrenReorder,
+    onItemDragOutside
+}: {
+    group: Exercise;
+    isDark: boolean;
+    shadow: ViewStyle;
+    onChildrenReorder: (groupKey: string, newChildren: Exercise[]) => void;
+    onItemDragOutside: (groupKey: string, item: Exercise) => void;
+}) => {
+    const handleDragRelease = useCallback((newData: Exercise[]) => {
+        onChildrenReorder(group.key, newData);
+    }, [group.key, onChildrenReorder]);
+    
+    const handleDragOutside = useCallback((item: Exercise) => {
+        onItemDragOutside(group.key, item);
+    }, [group.key, onItemDragOutside]);
+    
+    const renderChildItem = useCallback((child: Exercise, childIdx: number) => (
+        <View className="p-3 rounded-xl bg-surface-light dark:bg-surface-dark mx-1 my-0.5">
+            <View className="flex-row items-center gap-3">
+                <View className="w-6 h-6 rounded-md bg-primary-light dark:bg-primary-dark items-center justify-center">
+                    <Body className="text-white text-xs">{childIdx + 1}</Body>
+                </View>
+                <View className="flex-1">
+                    <Headline className="text-sm" numberOfLines={1}>{child.name}</Headline>
+                    <Body className="text-xs">{child.muscle}</Body>
+                </View>
+            </View>
+        </View>
+    ), []);
+    
+    if (!group.children) return null;
+    
+    const itemHeight = 52;
+    const gridHeight = group.children.length * itemHeight;
+    
+    return (
+        <View className="flex-1 m-2 p-2 rounded-2xl bg-accent-light/20 dark:bg-accent-dark/20 border-2 border-dashed border-accent-light dark:border-accent-dark" style={shadow}>
+            <View className="flex-row items-center gap-2 mb-2 px-2">
+                <Monicon name="solar:layers-bold" size={16} color={isDark ? "#0A84FF" : "#007AFF"} />
+                <Body className="text-xs text-accent-light dark:text-accent-dark">Superset • {group.children.length} exercices</Body>
+            </View>
+            <View style={{ height: gridHeight }}>
+                <DraggableGrid
+                    data={group.children}
+                    numColumns={1}
+                    itemHeight={itemHeight}
+                    renderItem={renderChildItem}
+                    enableJiggle={false}
+                    enableGrouping={false}
+                    onDragRelease={handleDragRelease}
+                    onDragOutside={handleDragOutside}
+                    delayLongPress={200}
+                />
+            </View>
+        </View>
+    );
+});
+
 // Components
 const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
     exercises: Exercise[];
@@ -31,6 +95,19 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
     const [isDraggingLocal, setIsDraggingLocal] = useState(false);
     const { handleDragMove, handleDragEnd, registerScrollOffsetHandler } = useAutoScroll();
     const shadow = useMemo(() => getShadow(isDark), [isDark]);
+
+    // Calculer la hauteur de chaque item dynamiquement
+    const getItemHeight = useCallback((item: Exercise): number => {
+        const BASE_HEIGHT = 100; // Hauteur de base pour un exercice
+        const GROUP_HEADER_HEIGHT = 40; // Hauteur du header du groupe
+        const CHILD_HEIGHT = 52; // Hauteur d'un enfant dans un groupe
+        const GROUP_PADDING = 20; // Padding du groupe (top + bottom)
+        
+        if (item.type === 'group' && item.children) {
+            return GROUP_HEADER_HEIGHT + (item.children.length * CHILD_HEIGHT) + GROUP_PADDING;
+        }
+        return BASE_HEIGHT;
+    }, []);
 
     useEffect(() => {
         registerScrollOffsetHandler((deltaY) => gridRef.current?.applyScrollOffset(deltaY));
@@ -53,25 +130,122 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
         setExercises(prev => prev.filter(e => e.key !== ex.key));
     }, [setExercises]);
 
-    const handleGroupCreate = useCallback((items: Exercise[], targetItem: Exercise) => {
-        console.log("🎯 Groupe créé avec:", items.map(i => i.name));
-        // TODO: Implémenter la logique de création de groupe/superset
-        // Pour l'instant, on log juste pour tester que ça fonctionne
-    }, []);
+    const handleChildrenReorder = useCallback((groupKey: string, newChildren: Exercise[]) => {
+        setExercises(prev => prev.map(item => {
+            if (item.key === groupKey && item.type === 'group') {
+                return { ...item, children: newChildren };
+            }
+            return item;
+        }));
+    }, [setExercises]);
 
-    const renderItem = useCallback((item: Exercise, idx: number) => (
-        <View className="flex-1 m-2 p-4 rounded-2xl bg-surface-light dark:bg-surface-dark" style={shadow}>
-            <View className="flex-row items-center gap-3">
-                <View className="w-8 h-8 rounded-lg bg-primary-light dark:bg-primary-dark items-center justify-center">
-                    <Headline className="text-white text-sm">{idx + 1}</Headline>
-                </View>
-                <View className="flex-1">
-                    <Headline className="text-sm" numberOfLines={1}>{item.name}</Headline>
-                    <Body className="text-xs">{item.muscle}</Body>
+    const handleItemDragOutside = useCallback((groupKey: string, item: Exercise) => {
+        setExercises(prev => {
+            // Trouver le groupe
+            const groupIndex = prev.findIndex(e => e.key === groupKey);
+            if (groupIndex === -1) return prev;
+            
+            const group = prev[groupIndex];
+            if (!group.children) return prev;
+            
+            // Retirer l'item du groupe
+            const newChildren = group.children.filter(c => c.key !== item.key);
+            
+            // Si le groupe n'a plus qu'un seul élément, le dissoudre
+            if (newChildren.length <= 1) {
+                const remainingItem = newChildren[0];
+                const newExercises = [...prev];
+                // Remplacer le groupe par l'item restant (s'il y en a un)
+                if (remainingItem) {
+                    newExercises.splice(groupIndex, 1, remainingItem);
+                } else {
+                    // Si le groupe est vide, le supprimer
+                    newExercises.splice(groupIndex, 1);
+                }
+                // Ajouter l'item retiré après la position du groupe
+                newExercises.splice(groupIndex + 1, 0, item);
+                return newExercises;
+            }
+            
+            // Sinon, mettre à jour le groupe et ajouter l'item à la liste principale
+            const newExercises = [...prev];
+            newExercises[groupIndex] = { ...group, children: newChildren };
+            // Ajouter l'item retiré après le groupe
+            newExercises.splice(groupIndex + 1, 0, item);
+            return newExercises;
+        });
+    }, [setExercises]);
+
+    const handleGroupCreate = useCallback((items: Exercise[], targetItem: Exercise) => {        
+        setExercises(prev => {
+            // Trouver les clés des items à grouper
+            const draggedItem = items.find(i => i.key !== targetItem.key);
+            if (!draggedItem) return prev;
+            
+            // Vérifier si la cible est déjà un groupe
+            const isTargetGroup = targetItem.type === 'group';
+            
+            // Créer le nouveau groupe ou ajouter au groupe existant
+            let newGroup: Exercise;
+            if (isTargetGroup && targetItem.children) {
+                // Ajouter au groupe existant
+                newGroup = {
+                    ...targetItem,
+                    children: [...targetItem.children, draggedItem],
+                };
+            } else {
+                // Créer un nouveau groupe
+                newGroup = {
+                    key: `group-${Date.now()}`,
+                    id: `group-${Date.now()}`,
+                    name: 'Superset',
+                    muscle: '',
+                    icon: 'solar:layers-bold',
+                    type: 'group',
+                    children: [targetItem, draggedItem],
+                };
+            }
+            
+            // Filtrer les items originaux et ajouter le groupe
+            const filtered = prev.filter(e => e.key !== draggedItem.key && e.key !== targetItem.key);
+            
+            // Insérer le groupe à la position de la cible
+            const targetIndex = prev.findIndex(e => e.key === targetItem.key);
+            filtered.splice(targetIndex, 0, newGroup);
+            
+            return filtered;
+        });
+    }, [setExercises]);
+
+    const renderItem = useCallback((item: Exercise, idx: number) => {
+        // Rendu pour les groupes (supersets) avec DraggableGrid imbriqué
+        if (item.type === 'group' && item.children) {
+            return (
+                <GroupContent
+                    group={item}
+                    isDark={isDark}
+                    shadow={shadow}
+                    onChildrenReorder={handleChildrenReorder}
+                    onItemDragOutside={handleItemDragOutside}
+                />
+            );
+        }
+        
+        // Rendu normal pour les exercices individuels
+        return (
+            <View className="flex-1 m-2 p-4 rounded-2xl bg-surface-light dark:bg-surface-dark" style={shadow}>
+                <View className="flex-row items-center gap-3">
+                    <View className="w-8 h-8 rounded-lg bg-primary-light dark:bg-primary-dark items-center justify-center">
+                        <Headline className="text-white text-sm">{idx + 1}</Headline>
+                    </View>
+                    <View className="flex-1">
+                        <Headline className="text-sm" numberOfLines={1}>{item.name}</Headline>
+                        <Body className="text-xs">{item.muscle}</Body>
+                    </View>
                 </View>
             </View>
-        </View>
-    ), [shadow]);
+        );
+    }, [shadow, isDark, handleChildrenReorder, handleItemDragOutside]);
 
     const renderDeleteButton = useCallback((_: Exercise, onDelete: () => void) => (
         <TouchableOpacity
@@ -94,6 +268,7 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
                 data={exercises}
                 numColumns={1}
                 itemHeight={100}
+                getItemHeight={getItemHeight}
                 renderItem={renderItem}
                 renderDeleteButton={renderDeleteButton}
                 enableJiggle={false}

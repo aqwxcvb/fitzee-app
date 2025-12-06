@@ -20,10 +20,13 @@ const DraggableGridComponent = function<T extends BaseItemType>({
     onDragStart,
     onDragging,
     onDragRelease,
+    onDragOutside,
     onItemDelete,
     onEditModeChange,
+    onGroupCreate,
     numColumns,
     itemHeight,
+    getItemHeight,
     dragStartAnimation,
     enableJiggle = true,
     enableGrouping = false,
@@ -36,30 +39,71 @@ const DraggableGridComponent = function<T extends BaseItemType>({
     const [blockHeight, setBlockHeight] = useState(0);
     const [internalData, setInternalData] = useState<T[]>(data);
     const [isEditMode, setIsEditMode] = useState(false);
-    const [groupedItemKey, setGroupedItemKey] = useState<string | undefined>(undefined);
+    const [groupedItemKey, setGroupedItemKeyState] = useState<string | undefined>(undefined);
 
     // Refs
     const itemsMap = useRef<Map<string, T>>(new Map());
     const orderMap = useRef<Map<string, number>>(new Map());
     const itemAnims = useRef<Map<string, Animated.ValueXY>>(new Map());
+    const itemHeightsRef = useRef<Map<string, number>>(new Map());
     const activeItemKeyRef = useRef<string | undefined>(undefined);
     const isDraggingRef = useRef(false);
     const initialDragPositionRef = useRef<{ x: number; y: number } | null>(null);
     const hoveredItemKeyRef = useRef<string | undefined>(undefined);
     const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const groupedItemKeyRef = useRef<string | undefined>(undefined);
     const handleHoverRef = useRef<(activeKey: string, x: number, y: number) => void>(() => {});
     const handleReorderRef = useRef<(activeKey: string, x: number, y: number) => void>(() => {});
 
-    // Helper: Get block position by index
-    const getPositionByIndex = (index: number) => {
+    // Helper pour mettre à jour groupedItemKey (state + ref)
+    const setGroupedItemKey = (value: string | undefined) => {
+        groupedItemKeyRef.current = value;
+        setGroupedItemKeyState(value);
+    };
+
+    // Helper: Get item height (dynamic or fixed)
+    const getHeightForItem = useCallback((item: T | undefined): number => {
+        if (!item) return blockHeight;
+        if (getItemHeight) {
+            return getItemHeight(item);
+        }
+        return blockHeight;
+    }, [blockHeight, getItemHeight]);
+
+    // Helper: Get item height by key
+    const getHeightByKey = useCallback((key: string): number => {
+        const item = itemsMap.current.get(key);
+        return getHeightForItem(item);
+    }, [getHeightForItem]);
+
+    // Helper: Get block position by index (supports dynamic heights for single column)
+    const getPositionByIndex = useCallback((index: number) => {
         if (!containerLayout) return { x: 0, y: 0 };
-        const row = Math.floor(index / numColumns);
+        
         const col = index % numColumns;
+        
+        // Si on utilise des hauteurs dynamiques (single column only)
+        if (getItemHeight && numColumns === 1) {
+            // Calculer la position Y en additionnant les hauteurs des items précédents
+            let yPos = 0;
+            const sortedItems = Array.from(itemsMap.current.entries())
+                .sort((a, b) => (orderMap.current.get(a[0]) ?? 0) - (orderMap.current.get(b[0]) ?? 0));
+            
+            for (let i = 0; i < index && i < sortedItems.length; i++) {
+                const [, item] = sortedItems[i];
+                yPos += getItemHeight(item);
+            }
+            
+            return { x: col * blockWidth, y: yPos };
+        }
+        
+        // Fallback: hauteur uniforme
+        const row = Math.floor(index / numColumns);
         return {
             x: col * blockWidth,
             y: row * blockHeight,
         };
-    };
+    }, [containerLayout, numColumns, blockWidth, blockHeight, getItemHeight]);
 
     // Init Data
     useEffect(() => {
@@ -109,19 +153,53 @@ const DraggableGridComponent = function<T extends BaseItemType>({
         return foundKey;
     };
 
+    // Helper: Get order by position (supports dynamic heights for single column)
+    const getOrderByPosition = useCallback((x: number, y: number): number => {
+        if (getItemHeight && numColumns === 1) {
+            // Calculer l'ordre en tenant compte des hauteurs dynamiques
+            const sortedItems = Array.from(itemsMap.current.entries())
+                .sort((a, b) => (orderMap.current.get(a[0]) ?? 0) - (orderMap.current.get(b[0]) ?? 0));
+            
+            let cumulativeY = 0;
+            for (let i = 0; i < sortedItems.length; i++) {
+                const [, item] = sortedItems[i];
+                const itemH = getItemHeight(item);
+                
+                if (y + itemH / 2 < cumulativeY + itemH) {
+                    return i;
+                }
+                cumulativeY += itemH;
+            }
+            return sortedItems.length - 1;
+        }
+        
+        // Fallback: hauteur uniforme
+        const col = Math.floor((x + blockWidth / 2) / blockWidth);
+        const row = Math.floor((y + blockHeight / 2) / blockHeight);
+        return row * numColumns + col;
+    }, [getItemHeight, numColumns, blockWidth, blockHeight]);
+
+    // Helper: Get item height at order
+    const getHeightAtOrder = useCallback((order: number): number => {
+        const key = getKeyByOrder(order);
+        if (key) {
+            return getHeightByKey(key);
+        }
+        return blockHeight;
+    }, [blockHeight, getHeightByKey]);
+
     // Fonction pour gérer le survol et l'effet de groupe
     const handleHover = (activeKey: string, x: number, y: number) => {
         if (!enableGrouping || !blockWidth || !blockHeight) {
             return;
         }
 
-        // Calculer quelle cellule on survole
-        const col = Math.floor((x + blockWidth / 2) / blockWidth);
-        const row = Math.floor((y + blockHeight / 2) / blockHeight);
-        let hoveredOrder = row * numColumns + col;
+        // Calculer quelle cellule on survole (supporte les hauteurs dynamiques)
+        let hoveredOrder = getOrderByPosition(x, y);
         hoveredOrder = Math.max(0, Math.min(internalData.length - 1, hoveredOrder));
 
         const targetKey = getKeyByOrder(hoveredOrder);
+        const targetHeight = getHeightAtOrder(hoveredOrder);
 
         // Ne pas traiter si on survole l'élément actif lui-même ou s'il n'y a pas de cible
         if (!targetKey || targetKey === activeKey) {
@@ -138,15 +216,17 @@ const DraggableGridComponent = function<T extends BaseItemType>({
         }
 
         const targetPos = getPositionByIndex(hoveredOrder);
+        const activeOrder = orderMap.current.get(activeKey);
+        const activeHeight = activeOrder !== undefined ? getHeightAtOrder(activeOrder) : blockHeight;
 
         // Vérifier si le centre de l'élément dragué survole le centre de l'élément cible
         const draggedCenterX = x + blockWidth / 2;
-        const draggedCenterY = y + blockHeight / 2;
+        const draggedCenterY = y + activeHeight / 2;
         const targetCenterX = targetPos.x + blockWidth / 2;
-        const targetCenterY = targetPos.y + blockHeight / 2;
+        const targetCenterY = targetPos.y + targetHeight / 2;
         const isHoveringCenter = 
             Math.abs(draggedCenterX - targetCenterX) < blockWidth * 0.4 && 
-            Math.abs(draggedCenterY - targetCenterY) < blockHeight * 0.4;
+            Math.abs(draggedCenterY - targetCenterY) < targetHeight * 0.4;
 
         if (isHoveringCenter) {
             // On survole le centre
@@ -179,19 +259,20 @@ const DraggableGridComponent = function<T extends BaseItemType>({
             return;
         }
         
-        const col = Math.floor((x + blockWidth / 2) / blockWidth);
-        const row = Math.floor((y + blockHeight / 2) / blockHeight);
-        
-        let newOrder = row * numColumns + col;
+        // Utiliser getOrderByPosition pour supporter les hauteurs dynamiques
+        let newOrder = getOrderByPosition(x, y);
         newOrder = Math.max(0, Math.min(internalData.length - 1, newOrder));
         
         const oldOrder = orderMap.current.get(activeKey);
+        const activeHeight = oldOrder !== undefined ? getHeightAtOrder(oldOrder) : blockHeight;
 
         const targetKey = getKeyByOrder(newOrder);
         if (targetKey) {
             const targetItem = itemsMap.current.get(targetKey);
             if (targetItem?.disabledReSorted) return;
         }
+        
+        const targetHeight = getHeightAtOrder(newOrder);
         
         // Mode grouping : ne réorganiser que si on dépasse les bordures
         if (enableGrouping && targetKey && targetKey !== activeKey && oldOrder !== undefined) {
@@ -216,7 +297,7 @@ const DraggableGridComponent = function<T extends BaseItemType>({
                 }
             } else {
                 if (oldOrder < newOrder) {
-                    hasPassedBorder = (y + blockHeight) >= (targetPos.y + blockHeight);
+                    hasPassedBorder = (y + activeHeight) >= (targetPos.y + targetHeight);
                 } else {
                     hasPassedBorder = y <= targetPos.y;
                 }
@@ -385,27 +466,91 @@ const DraggableGridComponent = function<T extends BaseItemType>({
 
     const finishDrag = () => {
         const key = activeItemKeyRef.current;
+        
+        // Utiliser la ref pour avoir la valeur actuelle
+        const currentGroupedItemKey = groupedItemKeyRef.current;
+        const shouldCreateGroup = enableGrouping && currentGroupedItemKey && currentGroupedItemKey !== key;
+        
         if (key) {
             const anim = itemAnims.current.get(key);
             const order = orderMap.current.get(key);
+            
             if (anim && order !== undefined) {
+                // Récupérer la position actuelle de l'item
+                const currentX = (anim.x as any)._value + (anim.x as any)._offset;
+                const currentY = (anim.y as any)._value + (anim.y as any)._offset;
+                
+                // Calculer les limites du grid (supporte les hauteurs dynamiques)
+                let gridHeight: number;
+                if (getItemHeight && numColumns === 1) {
+                    gridHeight = Array.from(itemsMap.current.values()).reduce((sum, item) => sum + getItemHeight(item), 0);
+                } else {
+                    gridHeight = Math.ceil(internalData.length / numColumns) * blockHeight;
+                }
+                const gridWidth = numColumns * blockWidth;
+                const activeHeight = getHeightAtOrder(order);
+                
+                // Vérifier si l'item est en dehors des limites (avec une marge de tolérance)
+                const margin = activeHeight * 0.3; // 30% de marge
+                const isOutside = 
+                    currentX < -margin || 
+                    currentX > gridWidth + margin ||
+                    currentY < -margin || 
+                    currentY > gridHeight + margin;
+                
                 anim.flattenOffset();
-                const finalPos = getPositionByIndex(order);
-                Animated.timing(anim, {
-                    toValue: finalPos,
-                    duration: 200,
-                    useNativeDriver: false,
-                }).start(() => {
-                     const sorted = Array.from(itemsMap.current.values()).sort((a, b) => {
-                         return orderMap.current.get(String(a.key))! - orderMap.current.get(String(b.key))!;
-                     });
-                     onDragRelease?.(sorted);
-                     setInternalData(sorted);
-                     
-                     // Reset active item AFTER animation completes
-                     setActiveItemKey(undefined);
-                     activeItemKeyRef.current = undefined;
-                });
+                
+                if (isOutside && onDragOutside) {
+                    // L'item est en dehors du grid
+                    const draggedItem = itemsMap.current.get(key);
+                    if (draggedItem) {
+                        onDragOutside(draggedItem);
+                    }
+                    
+                    // Reset
+                    setActiveItemKey(undefined);
+                    activeItemKeyRef.current = undefined;
+                } else if (shouldCreateGroup) {
+                    // Animation vers l'item cible pour le groupement
+                    const targetOrder = orderMap.current.get(currentGroupedItemKey);
+                    const targetPos = targetOrder !== undefined ? getPositionByIndex(targetOrder) : getPositionByIndex(order);
+                    
+                    Animated.timing(anim, {
+                        toValue: targetPos,
+                        duration: 200,
+                        useNativeDriver: false,
+                    }).start(() => {
+                        // Appeler le callback de création de groupe
+                        const draggedItem = itemsMap.current.get(key);
+                        const targetItem = itemsMap.current.get(currentGroupedItemKey);
+                        
+                        if (draggedItem && targetItem && onGroupCreate) {
+                            onGroupCreate([draggedItem, targetItem], targetItem);
+                        }
+                        
+                        // Reset
+                        setActiveItemKey(undefined);
+                        activeItemKeyRef.current = undefined;
+                    });
+                } else {
+                    // Animation normale vers la position finale
+                    const finalPos = getPositionByIndex(order);
+                    Animated.timing(anim, {
+                        toValue: finalPos,
+                        duration: 200,
+                        useNativeDriver: false,
+                    }).start(() => {
+                        const sorted = Array.from(itemsMap.current.values()).sort((a, b) => {
+                            return orderMap.current.get(String(a.key))! - orderMap.current.get(String(b.key))!;
+                        });
+                        onDragRelease?.(sorted);
+                        setInternalData(sorted);
+                        
+                        // Reset active item AFTER animation completes
+                        setActiveItemKey(undefined);
+                        activeItemKeyRef.current = undefined;
+                    });
+                }
             }
         } else {
             setActiveItemKey(undefined);
@@ -461,17 +606,26 @@ const DraggableGridComponent = function<T extends BaseItemType>({
             const order = orderMap.current.get(key);
             if (order === undefined) continue;
             const pos = getPositionByIndex(order);
+            const itemH = getHeightByKey(key);
             if (
                 x >= pos.x &&
                 x <= pos.x + blockWidth &&
                 y >= pos.y &&
-                y <= pos.y + blockHeight
+                y <= pos.y + itemH
             ) {
                 return true;
             }
         }
         return false;
     };
+
+    // Calculer la hauteur totale du grid (supporte les hauteurs dynamiques)
+    const totalGridHeight = useMemo(() => {
+        if (getItemHeight && numColumns === 1) {
+            return internalData.reduce((sum, item) => sum + getItemHeight(item), 0);
+        }
+        return Math.ceil(internalData.length / numColumns) * blockHeight;
+    }, [internalData, getItemHeight, numColumns, blockHeight]);
 
     const handleBackgroundPress = (event: any) => {
         if (!isEditMode) return;
@@ -488,10 +642,10 @@ const DraggableGridComponent = function<T extends BaseItemType>({
     return (
         <PressableComponent
             onPress={handleBackgroundPress}
-            style={[style, styles.container, { height: Math.ceil(internalData.length / numColumns) * blockHeight }]}
+            style={[style, styles.container, { height: totalGridHeight }]}
         >
             <AnimatedView 
-                style={[styles.innerContainer, { height: Math.ceil(internalData.length / numColumns) * blockHeight }]}
+                style={[styles.innerContainer, { height: totalGridHeight }]}
                 onLayout={onLayout}
                 {...panResponder.panHandlers}
             >
@@ -506,6 +660,7 @@ const DraggableGridComponent = function<T extends BaseItemType>({
                     const key = String(item.key);
                     const isActive = activeItemKey === key;
                     const anim = itemAnims.current.get(key) || new Animated.ValueXY({x:0, y:0});
+                    const itemH = getHeightForItem(item);
                     
                     if (!itemAnims.current.has(key)) {
                         const index = internalData.indexOf(item);
@@ -529,7 +684,7 @@ const DraggableGridComponent = function<T extends BaseItemType>({
                                 top: 0,
                                 left: 0,
                                 width: blockWidth,
-                                height: blockHeight,
+                                height: itemH,
                                 zIndex: isActive ? 999 : 1,
                                 transform: [
                                     { translateX: anim.x },
