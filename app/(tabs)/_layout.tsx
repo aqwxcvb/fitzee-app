@@ -83,6 +83,13 @@ export default function TabLayout() {
                     ),
                 }}
             />
+            <Tabs.Screen
+                name="builder"
+                options={{
+                    href: null,
+                    tabBarStyle: { display: "none" },
+                }}
+            />
         </Tabs>
     );
 }

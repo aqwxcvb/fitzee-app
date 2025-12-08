@@ -6,6 +6,7 @@ import { AutoScrollProvider } from "@/contexts/auto-scroll-context";
 import { useTranslation } from "@/i18n";
 import { Monicon } from "@monicon/native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
     Image,
@@ -17,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TrainingScreen() {
     const { __ } = useTranslation();
+    const router = useRouter();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const iconColor = isDark ? "#ffffff" : "#1c1c1e";
@@ -156,7 +158,8 @@ export default function TrainingScreen() {
                     visible={isModalVisible}
                     onClose={() => setIsModalVisible(false)}
                     onConfirm={(programId) => {
-                        console.log("Program selected:", programId);
+                        setIsModalVisible(false);
+                        router.push("/builder");
                     }}
                 />
             </SafeAreaView>

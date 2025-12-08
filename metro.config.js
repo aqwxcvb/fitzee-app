@@ -68,6 +68,11 @@ const configWithMonicon = withMonicon(nativeWindConfig, {
         "solar:check-circle-bold",
         "solar:close-circle-bold",
         "solar:list-bold",
+
+        "solar:alt-arrow-down-linear",
+        "solar:alt-arrow-left-linear",
+        "solar:filter-linear",
+        "solar:folder-with-files-linear",
     ],
 });
 

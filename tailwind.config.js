@@ -43,7 +43,7 @@ module.exports = {
                     primary: {
                         light: "#007AFF",
                         dark: "#0A84FF",
-                    }
+                    },
                 },
 
                 content: {
@@ -55,7 +55,8 @@ module.exports = {
                 },
             },
             fontFamily: {
-                sfpro: ["SFPro-Regular"],
+                "sfpro-light": ["SFPro-Light"],
+                "sfpro-regular": ["SFPro-Regular"],
                 "sfpro-medium": ["SFPro-Medium"],
                 "sfpro-semibold": ["SFPro-Semibold"],
                 "sfpro-bold": ["SFPro-Bold"],

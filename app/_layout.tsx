@@ -28,6 +28,7 @@ export default function RootLayout() {
     const colorScheme = useColorScheme();
     const { setColorScheme } = useTailwindColorScheme();
     const [fontsLoaded, fontError] = useFonts({
+        "SFPro-Light": require("../assets/fonts/SF-Pro-Text-Light.otf"),
         "SFPro-Regular": require("../assets/fonts/SF-Pro-Text-Regular.otf"),
         "SFPro-Medium": require("../assets/fonts/SF-Pro-Text-Medium.otf"),
         "SFPro-Semibold": require("../assets/fonts/SF-Pro-Text-Semibold.otf"),

@@ -1,4 +1,4 @@
-import { ProgramBuilder } from "@/components/features/program-builder/program-builder";
+import ProgramBuilder from "@/components/features/program-builder";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function BuilderScreen() {
