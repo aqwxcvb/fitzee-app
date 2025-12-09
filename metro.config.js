@@ -73,6 +73,11 @@ const configWithMonicon = withMonicon(nativeWindConfig, {
         "solar:alt-arrow-left-linear",
         "solar:filter-linear",
         "solar:folder-with-files-linear",
+        "solar:alt-arrow-up-linear",
+        "solar:bolt-outline",
+
+        "ic:outline-explore",
+        "ic:twotone-plus",
     ],
 });
 

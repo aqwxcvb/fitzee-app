@@ -49,11 +49,11 @@ function ModalContent({ closeWithAnimation, onConfirm }: ModalContentProps) {
 
     return (
         <>
-            <Title className="px-5 mb-2">
+            <Title className="px-5 mb-2 text-content-primary-light dark:text-content-primary-dark">
                 {__("Choisis un programme")}
             </Title>
 
-            <Body className="px-5 mb-6">
+            <Body className="px-5 mb-6 text-content-secondary-light dark:text-content-secondary-dark">
                 {__("Sélectionne le programme où enregistrer cette nouvelle séance.")}
             </Body>
 
@@ -85,9 +85,9 @@ function ModalContent({ closeWithAnimation, onConfirm }: ModalContentProps) {
                 <TouchableOpacity
                     onPress={handleConfirm}
                     activeOpacity={0.8}
-                    className="bg-primary-light dark:bg-primary-dark rounded-[14px] py-4 items-center justify-center"
+                    className="bg-accent-primary-light dark:bg-accent-primary-dark rounded-xl py-4 items-center justify-center"
                 >
-                    <Headline className="text-lg text-white font-sfpro-semibold">
+                    <Headline className="text-lg !text-accent-primary-label-light dark:!text-accent-primary-label-dark font-sfpro-semibold">
                         {__("Confirmer")}
                     </Headline>
                 </TouchableOpacity>
@@ -97,7 +97,7 @@ function ModalContent({ closeWithAnimation, onConfirm }: ModalContentProps) {
                     activeOpacity={0.7}
                     className="py-3.5 items-center justify-center"
                 >
-                    <Body className="text-lg text-content font-sfpro-medium">
+                    <Body className="text-lg !text-content-tertiary-light dark:!text-content-tertiary-dark font-sfpro-medium">
                         {__("Annuler")}
                     </Body>
                 </TouchableOpacity>
@@ -133,36 +133,19 @@ function ProgramCard({
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
 
-    const cardShadowStyle = isDark
-        ? {
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.22,
-              shadowRadius: 12,
-              elevation: 3,
-          }
-        : {
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.04,
-              shadowRadius: 6,
-              elevation: 0,
-          };
-
     return (
         <TouchableOpacity
             onPress={onSelect}
             activeOpacity={0.7}
-            className={`rounded-[14px] p-4 flex-row items-center gap-4 bg-surface-modal-light dark:bg-surface-modal-dark border-2 ${
+            className={`rounded-xl p-4 flex-row items-center gap-4 bg-surface-secondary-light dark:bg-surface-secondary-dark border-2 ${
                 isSelected
-                    ? "border-stroke-primary-light dark:border-stroke-primary-dark"
+                    ? "border-accent-primary-stroke-light dark:border-accent-primary-stroke-dark"
                     : "border-transparent"
             }`}
-            style={cardShadowStyle}
         >
             <View
                 className={`w-10 h-10 rounded-full items-center justify-center ${
-                    isNew ? "bg-primary-light dark:bg-primary-dark" : "bg-accent-light dark:bg-accent-dark"
+                    isNew ? "bg-accent-primary-light dark:bg-accent-primary-dark" : "bg-surface-secondary-muted-light dark:bg-surface-secondary-muted-dark"
                 }`}
             >
                 <Monicon
@@ -173,12 +156,12 @@ function ProgramCard({
             </View>
 
             <View className="flex-1">
-                <Headline className="line-clamp-1">
+                <Headline className="line-clamp-1 text-content-primary-light dark:text-content-primary-dark">
                     {program.name}
                 </Headline>
 
                 {!isNew && (
-                    <Body>
+                    <Body className="text-content-secondary-light dark:text-content-secondary-dark">
                         {program.workouts} {__("séances")}
                     </Body>
                 )}

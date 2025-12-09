@@ -144,12 +144,12 @@ export function BottomSheetModal({
                     {/* Bottom sheet */}
                     <Animated.View
                         style={[sheetStyle, sheetShadow, { borderTopLeftRadius: 32, borderTopRightRadius: 32, borderTopWidth: 0.5, borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)" }]}
-                        className="bg-foreground-light dark:bg-foreground-dark pb-8 pt-3"
+                        className="bg-base-secondary-light dark:bg-base-secondary-dark pb-8 pt-3"
                     >
                         {enableDrag && (
                             <GestureDetector gesture={panGesture}>
                                 <Animated.View className="pb-4 items-center">
-                                    <View className="w-9 h-1.5 rounded-full bg-accent-light dark:bg-accent-dark" />
+                                    <View className="w-9 h-1.5 rounded-full bg-surface-secondary-muted-light dark:bg-surface-secondary-muted-dark" />
                                 </Animated.View>
                             </GestureDetector>
                         )}

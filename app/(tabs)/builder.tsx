@@ -1,11 +1,11 @@
 import ProgramBuilder from "@/components/features/program-builder";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View } from "react-native";
 
 export default function BuilderScreen() {
     return (
-        <SafeAreaView className="flex-1 bg-base-light dark:bg-base-dark" edges={["top"]}>
+        <View className="flex-1 bg-base-light dark:bg-base-dark">
             <ProgramBuilder />
-        </SafeAreaView>
+        </View>
     );
 }
 

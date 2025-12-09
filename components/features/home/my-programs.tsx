@@ -7,7 +7,7 @@ import {
     useCallback,
     useEffect,
     useRef,
-    useState,
+    useState
 } from "react";
 import {
     Dimensions,
@@ -19,7 +19,7 @@ import {
 } from "react-native";
 import {
     DraggableGrid,
-    DraggableGridRef,
+    DraggableGridRef
 } from "react-native-draggable-grid";
 
 interface Program {
@@ -46,7 +46,7 @@ export function MyPrograms({ onChangeScrollEnable }: MyProgramsProps) {
     const { handleDragMove, handleDragEnd, registerScrollOffsetHandler } = useAutoScroll();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
-    const iconColor = isDark ? "#ffffff" : "#1c1c1e";
+    const iconColor = isDark ? "#F5F6FA" : "#15161A";
     const { __ } = useTranslation();
 
     const [programs, setPrograms] = useState<Program[]>([
@@ -60,36 +60,17 @@ export function MyPrograms({ onChangeScrollEnable }: MyProgramsProps) {
             sessions: 0,
             isAddButton: true,
             disabledDrag: true,
-            disabledReSorted: true,
-        },
+            disabledReSorted: true
+        }
     ]);
 
     const gridRef = useRef<DraggableGridRef>(null);
     const [isEditMode, setIsEditMode] = useState(false);
 
-    const cardShadowStyle = isDark
-        ? {
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.28,
-              shadowRadius: 16,
-              elevation: 4,
-          }
-        : {
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.05,
-              shadowRadius: 8,
-              elevation: 1,
-          };
-
-    const deleteButtonShadow = {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 5,
-    };
+    /**
+     * NOTE : Toutes les ombres ont été supprimées.
+     * La profondeur est gérée exclusivement par les surfaces (palette).
+     */
 
     useEffect(() => {
         registerScrollOffsetHandler((deltaY: number) => {
@@ -110,18 +91,19 @@ export function MyPrograms({ onChangeScrollEnable }: MyProgramsProps) {
                         style={{ height: ITEM_HEIGHT + GAP }}
                     >
                         <TouchableOpacity
-                            className="bg-primary-light dark:bg-primary-dark rounded-[14px] p-4 gap-4"
-                            activeOpacity={0.98}
-                            style={[{ width: ITEM_WIDTH, height: ITEM_HEIGHT }, cardShadowStyle]}
+                            className="rounded-[14px] p-4 gap-4 bg-surface-primary-light dark:bg-surface-primary-dark"
+                            activeOpacity={0.9}
+                            style={{ width: ITEM_WIDTH, height: ITEM_HEIGHT }}
                         >
-                            <View className="w-10 h-10 rounded-full bg-white/20 items-center justify-center">
+                            <View className="w-10 h-10 rounded-full bg-accent-primary-light dark:bg-accent-primary-dark items-center justify-center">
                                 <Monicon
                                     name="solar:add-circle-bold"
                                     size={24}
                                     color="#ffffff"
                                 />
                             </View>
-                            <Headline className="text-white">
+
+                            <Headline className="text-content-primary-light dark:text-content-primary-dark">
                                 {__("Nouveau programme")}
                             </Headline>
                         </TouchableOpacity>
@@ -135,21 +117,22 @@ export function MyPrograms({ onChangeScrollEnable }: MyProgramsProps) {
                     style={{ height: ITEM_HEIGHT + GAP }}
                 >
                     <View
-                        className="rounded-[14px] p-4 bg-surface-light dark:bg-surface-dark gap-4"
-                        style={[{ width: ITEM_WIDTH, height: ITEM_HEIGHT }, cardShadowStyle]}
+                        className="rounded-[14px] p-4 gap-4 bg-surface-primary-light dark:bg-surface-primary-dark"
+                        style={{ width: ITEM_WIDTH, height: ITEM_HEIGHT }}
                     >
-                        <View className="w-10 h-10 rounded-full bg-accent-light dark:bg-accent-dark items-center justify-center">
+                        <View className="w-10 h-10 rounded-full bg-surface-primary-muted-light dark:bg-surface-primary-muted-dark items-center justify-center">
                             <Monicon
                                 name="solar:dumbbell-small-outline"
                                 size={24}
                                 color={iconColor}
                             />
                         </View>
+
                         <View className="gap-1">
-                            <Headline className="line-clamp-1">
+                            <Headline className="line-clamp-1 text-content-primary-light dark:text-content-primary-dark">
                                 {item.name}
                             </Headline>
-                            <Body>
+                            <Body className="text-content-secondary-light dark:text-content-secondary-dark">
                                 {item.sessions} {__("séances")}
                             </Body>
                         </View>
@@ -157,7 +140,7 @@ export function MyPrograms({ onChangeScrollEnable }: MyProgramsProps) {
                 </View>
             );
         },
-        [iconColor, __, cardShadowStyle],
+        [iconColor, __]
     );
 
     const handleDragStart = useCallback(() => {
@@ -175,14 +158,14 @@ export function MyPrograms({ onChangeScrollEnable }: MyProgramsProps) {
             setPrograms(addButton ? [...programsWithoutButton, addButton] : programsWithoutButton);
             handleDragEnd();
         },
-        [onChangeScrollEnable, handleDragEnd],
+        [onChangeScrollEnable, handleDragEnd]
     );
 
     const onDragging = useCallback(
         (gestureState: PanResponderGestureState) => {
             handleDragMove(gestureState);
         },
-        [handleDragMove],
+        [handleDragMove]
     );
 
     const handleEditModeChange = useCallback((editMode: boolean) => {
@@ -226,14 +209,14 @@ export function MyPrograms({ onChangeScrollEnable }: MyProgramsProps) {
                 onItemDelete={handleDeleteProgram}
                 renderDeleteButton={(item: Program, onDelete: () => void) => (
                     <TouchableOpacity
-                        className="w-7 h-7 rounded-full items-center justify-center"
+                        className="w-7 h-7 flex items-center justify-center"
                         onPress={onDelete}
-                        activeOpacity={0.7}
+                        activeOpacity={0.8}
                     >
                         <Monicon
                             name="solar:minus-circle-outline"
                             size={18}
-                            color="#ff3b30"
+                            color="#FF3B30"
                         />
                     </TouchableOpacity>
                 )}

@@ -1,8 +1,10 @@
 import { Caption } from "@/components/ui/typography";
 import { useTranslation } from "@/i18n";
-import { Animated } from "react-native";
+import { Animated, ScrollView } from "react-native";
 import ExerciseCard from "./components/exercise-card";
 import { Exercise } from "./types/exercise";
+
+type AnimatedValue = number | Animated.AnimatedAddition<number> | Animated.AnimatedInterpolation<number>;
 
 const EXERCISES = [
     {
@@ -128,15 +130,43 @@ const EXERCISES = [
                 perspective: "back",
             },
         ]
+    },
+    {
+        id: "6",
+        name: "Développé couché sur banc incliné",
+        muscles: [
+            {
+                id: "1",
+                name: "Chest",
+                type: "primary",
+                area: "upper",
+                perspective: "front",
+            },
+            {
+                id: "2",
+                name: "Deltoids",
+                type: "secondary",
+                area: "upper",
+                perspective: "front",
+            },
+            {
+                id: "3",
+                name: "Triceps",
+                type: "secondary",
+                area: "upper",
+                perspective: "back",
+            },
+        ]
     }
 ] as Exercise[];
 
-const ExerciseLibraryPanel: React.FC<{ headerScrollDistance: number, scrollY: Animated.Value }> = ({ headerScrollDistance, scrollY }) => {
+const ExerciseLibraryPanel: React.FC<{ currentHeaderHeight: AnimatedValue, headerScrollDistance: number, scrollY: Animated.Value, scrollViewRef?: React.RefObject<ScrollView | null> }> = ({ currentHeaderHeight, headerScrollDistance, scrollY, scrollViewRef }) => {
     const { __ } = useTranslation();
 
     return (
         <Animated.ScrollView
-            className="flex-1 bg-base-light dark:bg-base-dark border-r border-neutral-200 dark:border-neutral-800 p-4"
+            ref={scrollViewRef}
+            className="flex-1 p-4"
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             bounces={false}
@@ -146,10 +176,13 @@ const ExerciseLibraryPanel: React.FC<{ headerScrollDistance: number, scrollY: An
                 { useNativeDriver: false }
             )}
             contentContainerStyle={{
+                flexGrow: 1,
                 paddingBottom: headerScrollDistance,
             }}
         >
-            <Caption>
+            <Animated.View style={{ height: currentHeaderHeight }} />
+            
+            <Caption className="text-content-secondary-light dark:text-content-secondary-dark">
                 {__("Tous les exercices")}
             </Caption>
 

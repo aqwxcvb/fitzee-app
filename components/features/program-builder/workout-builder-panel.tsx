@@ -2,12 +2,14 @@ import { Caption } from "@/components/ui/typography";
 import { useTranslation } from "@/i18n";
 import { Animated } from "react-native";
 
-const WorkoutBuilderPanel: React.FC<{ headerScrollDistance: number }> = ({ headerScrollDistance }) => {
+type AnimatedValue = number | Animated.AnimatedAddition<number> | Animated.AnimatedInterpolation<number>;
+
+const WorkoutBuilderPanel: React.FC<{ currentHeaderHeight: AnimatedValue, headerScrollDistance: number }> = ({ currentHeaderHeight, headerScrollDistance }) => {
     const { __ } = useTranslation();
 
     return (
         <Animated.ScrollView
-            className="flex-1 bg-base-light dark:bg-base-dark border-r border-neutral-200 dark:border-neutral-800 p-4"
+            className="flex-1 p-4"
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             bounces={false}
@@ -17,7 +19,9 @@ const WorkoutBuilderPanel: React.FC<{ headerScrollDistance: number }> = ({ heade
                 paddingBottom: headerScrollDistance,
             }}
         >
-            <Caption>
+            <Animated.View style={{ height: currentHeaderHeight }} />
+            
+            <Caption className="text-content-secondary-light dark:text-content-secondary-dark">
                 {__("Récapitulatif de votre séance")}
             </Caption>
         </Animated.ScrollView>

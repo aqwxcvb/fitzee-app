@@ -7,12 +7,12 @@ export interface MuscleBadgeProps {
 
 export const MuscleBadge = ({ muscle }: MuscleBadgeProps) => {
     const isPrimary = muscle.type === "primary";
-    const contentColor = isPrimary ? "text-neutral-700 dark:text-neutral-400" : "text-neutral-600 dark:text-neutral-400";
-    const borderColor = isPrimary ? "border-neutral-700 dark:border-neutral-400" : "border-neutral-600 dark:border-neutral-500";
+    const contentColor = isPrimary ? "text-content-primary-light dark:text-content-primary-dark" : "text-content-secondary-light dark:text-content-secondary-dark";
+    const borderColor = isPrimary ? "border-stroke-primary-light dark:border-stroke-primary-dark" : "border-stroke-secondary-light dark:border-stroke-secondary-dark";
     const name = muscle.name.length > 7 ? muscle.name.slice(0, 7) + "." : muscle.name;
 
     return (    
-        <View className={`self-start inline-flex px-2 py-1 border ${borderColor}`}>
+        <View className={`rounded-xl self-start inline-flex px-2 py-1 border ${borderColor}`}>
             <Text className={`text-xs font-sfpro-medium ${contentColor}`}>
                 {name}
             </Text>
