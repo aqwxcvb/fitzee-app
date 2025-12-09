@@ -1,167 +1,156 @@
-import { Children, cloneElement, isValidElement, useEffect } from "react";
+import GorhomBottomSheet, {
+    BottomSheetBackdrop,
+    BottomSheetView,
+    BottomSheetModal as GorhomBottomSheetModal,
+} from "@gorhom/bottom-sheet";
+import { BottomSheetDefaultBackdropProps } from "@gorhom/bottom-sheet/lib/typescript/components/bottomSheetBackdrop/types";
 import {
-    Dimensions,
-    Modal,
-    Pressable,
-    useColorScheme,
-    View,
-} from "react-native";
-import {
-    Gesture,
-    GestureDetector,
-    GestureHandlerRootView,
-} from "react-native-gesture-handler";
-import Animated, {
-    Easing,
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
-} from "react-native-reanimated";
+    Children,
+    cloneElement,
+    forwardRef,
+    isValidElement,
+    useCallback,
+    useEffect,
+    useImperativeHandle,
+    useRef,
+} from "react";
+import { useColorScheme } from "react-native";
 
 interface BottomSheetModalProps {
     visible: boolean;
     onClose: () => void;
     children: React.ReactNode;
-    dismissThreshold?: number;
+    snapPoints?: (string | number)[];
     enableDrag?: boolean;
 }
 
-const SCREEN_HEIGHT = Dimensions.get("window").height;
-const DEFAULT_CLOSE_OFFSET = SCREEN_HEIGHT + 80;
-const DEFAULT_DISMISS_THRESHOLD = 140;
-
-const OPEN_CONFIG = {
-    duration: 260,
-    easing: Easing.out(Easing.cubic),
-};
-
-const CLOSE_CONFIG = {
-    duration: 260,
-    easing: Easing.in(Easing.cubic),
-};
+export interface BottomSheetModalRef {
+    present: () => void;
+    dismiss: () => void;
+}
 
 export function BottomSheetModal({
     visible,
     onClose,
     children,
-    dismissThreshold = DEFAULT_DISMISS_THRESHOLD,
+    snapPoints,
     enableDrag = true,
 }: BottomSheetModalProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
-
-    const translateY = useSharedValue(DEFAULT_CLOSE_OFFSET);
+    const bottomSheetRef = useRef<GorhomBottomSheetModal>(null);
 
     useEffect(() => {
         if (visible) {
-            translateY.value = DEFAULT_CLOSE_OFFSET;
-            translateY.value = withTiming(0, OPEN_CONFIG);
+            bottomSheetRef.current?.present();
+        } else {
+            bottomSheetRef.current?.dismiss();
         }
-    }, [visible, translateY]);
+    }, [visible]);
 
-    const closeWithAnimation = () => {
-        translateY.value = withTiming(DEFAULT_CLOSE_OFFSET, CLOSE_CONFIG, (finished) => {
-            if (finished) {
-                runOnJS(onClose)();
+    const handleSheetChanges = useCallback(
+        (index: number) => {
+            if (index === -1) {
+                onClose();
             }
-        });
+        },
+        [onClose],
+    );
+
+    const closeWithAnimation = useCallback(() => {
+        bottomSheetRef.current?.dismiss();
+    }, []);
+
+    const renderBackdrop = useCallback(
+        (props: BottomSheetDefaultBackdropProps) => (
+            <BottomSheetBackdrop
+                {...props}
+                disappearsOnIndex={-1}
+                appearsOnIndex={0}
+                opacity={0.6}
+            />
+        ),
+        [],
+    );
+
+    const handleIndicatorStyle = {
+        backgroundColor: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)",
+        width: 36,
+        height: 5,
     };
 
-    const panGesture = Gesture.Pan()
-        .enabled(enableDrag)
-        .onUpdate((event) => {
-            if (event.translationY >= 0) {
-                translateY.value = event.translationY;
-            }
-        })
-        .onEnd((event) => {
-            if (translateY.value > dismissThreshold || event.velocityY > 800) {
-                translateY.value = withTiming(
-                    DEFAULT_CLOSE_OFFSET,
-                    CLOSE_CONFIG,
-                    (finished) => {
-                        if (finished) {
-                            runOnJS(onClose)();
-                        }
-                    },
-                );
-            } else {
-                translateY.value = withTiming(0, OPEN_CONFIG);
-            }
-        });
-
-    const sheetStyle = useAnimatedStyle(() => ({
-        transform: [{ translateY: translateY.value }],
-    }));
-
-    const overlayStyle = useAnimatedStyle(() => {
-        const progress = translateY.value / DEFAULT_CLOSE_OFFSET;
-        const eased = Math.pow(progress, 1);
-        return {
-            opacity: 1 - eased,
-        };
-    });
-
-    const lightSheetShadow = {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 20,
-        elevation: 12,
+    const backgroundStyle = {
+        backgroundColor: isDark ? "#1c1c1e" : "#f2f2f7",
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
     };
-
-    const darkSheetShadow = {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.5,
-        shadowRadius: 18,
-        elevation: 10,
-    };
-
-    const sheetShadow = isDark ? darkSheetShadow : lightSheetShadow;
-
-    if (!visible) return null;
 
     return (
-        <Modal
-            visible={visible}
-            transparent
-            animationType="none"
-            onRequestClose={closeWithAnimation}
-            statusBarTranslucent
+        <GorhomBottomSheetModal
+            ref={bottomSheetRef}
+            onChange={handleSheetChanges}
+            enableDynamicSizing={!snapPoints}
+            snapPoints={snapPoints}
+            enablePanDownToClose={enableDrag}
+            backdropComponent={renderBackdrop}
+            handleIndicatorStyle={handleIndicatorStyle}
+            backgroundStyle={backgroundStyle}
+            enableContentPanningGesture={enableDrag}
         >
-            <GestureHandlerRootView style={{ flex: 1 }}>
-                <View className="flex-1 justify-end">
-                    {/* Overlay */}
-                    <Animated.View
-                        className="absolute inset-0 bg-black/60"
-                        style={overlayStyle}
-                    >
-                        <Pressable className="flex-1" onPress={closeWithAnimation} />
-                    </Animated.View>
-
-                    {/* Bottom sheet */}
-                    <Animated.View
-                        style={[sheetStyle, sheetShadow, { borderTopLeftRadius: 32, borderTopRightRadius: 32, borderTopWidth: 0.5, borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)" }]}
-                        className="bg-base-secondary-light dark:bg-base-secondary-dark pb-8 pt-3"
-                    >
-                        {enableDrag && (
-                            <GestureDetector gesture={panGesture}>
-                                <Animated.View className="pb-4 items-center">
-                                    <View className="w-9 h-1.5 rounded-full bg-surface-secondary-muted-light dark:bg-surface-secondary-muted-dark" />
-                                </Animated.View>
-                            </GestureDetector>
-                        )}
-
-                        {Children.map(children, (child) =>
-                            isValidElement(child)
-                                ? cloneElement(child, { closeWithAnimation } as any)
-                                : child,
-                        )}
-                    </Animated.View>
-                </View>
-            </GestureHandlerRootView>
-        </Modal>
+            <BottomSheetView className="pb-8">
+                {Children.map(children, (child) =>
+                    isValidElement(child)
+                        ? cloneElement(child, { closeWithAnimation } as any)
+                        : child,
+                )}
+            </BottomSheetView>
+        </GorhomBottomSheetModal>
     );
 }
+
+// Composant BottomSheet standard (non-modal) pour d'autres usages
+interface BottomSheetProps {
+    children: React.ReactNode;
+    snapPoints?: (string | number)[];
+    initialIndex?: number;
+    onChange?: (index: number) => void;
+    enableDrag?: boolean;
+}
+
+export const BottomSheet = forwardRef<GorhomBottomSheet, BottomSheetProps>(
+    ({ children, snapPoints = ["25%", "50%"], initialIndex = -1, onChange, enableDrag = true }, ref) => {
+        const colorScheme = useColorScheme();
+        const isDark = colorScheme === "dark";
+        const bottomSheetRef = useRef<GorhomBottomSheet>(null);
+
+        useImperativeHandle(ref, () => bottomSheetRef.current!);
+
+        const handleIndicatorStyle = {
+            backgroundColor: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)",
+            width: 36,
+            height: 5,
+        };
+
+        const backgroundStyle = {
+            backgroundColor: isDark ? "#1c1c1e" : "#f2f2f7",
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+        };
+
+        return (
+            <GorhomBottomSheet
+                ref={bottomSheetRef}
+                snapPoints={snapPoints}
+                index={initialIndex}
+                onChange={onChange}
+                enablePanDownToClose={enableDrag}
+                handleIndicatorStyle={handleIndicatorStyle}
+                backgroundStyle={backgroundStyle}
+            >
+                <BottomSheetView className="flex-1">
+                    {children}
+                </BottomSheetView>
+            </GorhomBottomSheet>
+        );
+    },
+);

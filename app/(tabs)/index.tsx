@@ -1,5 +1,5 @@
-import { ChooseProgramModal } from "@/components/features/home/choose-program-modal";
 import { MyPrograms } from "@/components/features/home/my-programs";
+import { ChooseProgram } from "@/components/home/modals/choose-program";
 import { AutoScrollView } from "@/components/ui/auto-scroll-view";
 import { BigTitle, Caption, Headline } from "@/components/ui/typography";
 import { AutoScrollProvider } from "@/contexts/auto-scroll-context";
@@ -18,11 +18,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TrainingScreen() {
     const { __ } = useTranslation();
-    const router = useRouter();
     const colorScheme = useColorScheme();
+    const router = useRouter();
+    
     const isDark = colorScheme === "dark";
-
-    // Couleurs d’icônes cohérentes avec la palette (texte principal)
     const iconColor = isDark ? "#F2F2F7" : "#2A2A2C";
 
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -139,14 +138,15 @@ export default function TrainingScreen() {
                     </AutoScrollView>
                 </AutoScrollProvider>
 
-                <ChooseProgramModal
+                {/*<ChooseProgramModal
                     visible={isModalVisible}
                     onClose={() => setIsModalVisible(false)}
                     onConfirm={(programId) => {
                         setIsModalVisible(false);
-                        router.push("/builder");
+                        router.push("/(stack)/program-builder");
                     }}
-                />
+                />*/}
+                <ChooseProgram visible={isModalVisible} onClose={() => setIsModalVisible(false)} />
             </SafeAreaView>
         </View>
     );

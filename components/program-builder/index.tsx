@@ -2,6 +2,7 @@ import { AnimatedBlurHeader } from "@/components/ui/blur-view";
 import { Headline } from "@/components/ui/typography";
 import { useTranslation } from "@/i18n";
 import Monicon from "@monicon/native";
+import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
     Animated,
@@ -23,8 +24,9 @@ const HEADER_MAX_HEIGHT = 180;
 const HEADER_MIN_HEIGHT = 110;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
-const ProgramBuilder = () => {
+export function ProgramBuilder() {
     const { __ } = useTranslation();
+    const router = useRouter();
     const isDark = useColorScheme() === "dark";
     const iconColor = isDark ? "#8e8e93" : "#636366";
     const insets = useSafeAreaInsets();
@@ -80,7 +82,7 @@ const ProgramBuilder = () => {
                     <View className="flex flex-row items-center">
                         <TouchableOpacity
                             className="self-start flex items-center px-4 py-2 rounded-lg bg-surface-primary-light dark:bg-surface-primary-dark overflow-hidden"
-                            onPress={() => {}}
+                            onPress={() => router.back()}
                         >
                             <Monicon
                                 name="solar:alt-arrow-left-linear"
@@ -184,5 +186,3 @@ const ProgramBuilder = () => {
         </View>
     );
 };
-
-export default ProgramBuilder;

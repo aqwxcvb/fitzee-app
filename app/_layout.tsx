@@ -1,10 +1,10 @@
 import { TranslationProvider } from "@/i18n";
 import { JetBrainsMono_400Regular, JetBrainsMono_500Medium, JetBrainsMono_700Bold } from "@expo-google-fonts/jetbrains-mono";
 import { PlayfairDisplay_400Regular, PlayfairDisplay_500Medium, PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from "@expo-google-fonts/playfair-display";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
+import { SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useColorScheme as useTailwindColorScheme } from "nativewind";
 import { useEffect } from "react";
@@ -13,13 +13,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import "../global.css";
 
-// Empêcher le splash screen de se cacher automatiquement
-if (typeof SplashScreen !== "undefined") {
-    SplashScreen.preventAutoHideAsync().catch(() => {
-        // Ignore l'erreur si le splash screen n'est pas disponible
-    });
-}
-
 export const unstable_settings = {
     anchor: "(tabs)",
 };
@@ -27,7 +20,8 @@ export const unstable_settings = {
 export default function RootLayout() {
     const colorScheme = useColorScheme();
     const { setColorScheme } = useTailwindColorScheme();
-    const [fontsLoaded, fontError] = useFonts({
+    
+    const [fontsLoaded] = useFonts({
         "SFPro-Light": require("../assets/fonts/SF-Pro-Text-Light.otf"),
         "SFPro-Regular": require("../assets/fonts/SF-Pro-Text-Regular.otf"),
         "SFPro-Medium": require("../assets/fonts/SF-Pro-Text-Medium.otf"),
@@ -47,34 +41,32 @@ export default function RootLayout() {
     });
 
     useEffect(() => {
-        async function hideSplashScreen() {
-            try {
-                await SplashScreen.hideAsync();
-            } catch (error) {
-                // Ignore l'erreur si le splash screen n'est pas disponible
-                console.warn("Splash screen error:", error);
-            }
+        if(fontsLoaded) {
+            SplashScreen.hideAsync();
         }
-        
-        if (fontsLoaded || fontError) {
-            hideSplashScreen();
-        }
-    }, [fontsLoaded, fontError]);
+    }, [fontsLoaded]);
 
     useEffect(() => {
         setColorScheme(colorScheme || "light");
     }, [colorScheme, setColorScheme]);
 
-    // Toujours rendre le ThemeProvider pour maintenir le contexte de navigation
+    if(!fontsLoaded) {
+        return null;
+    }
+
     return (
-        <GestureHandlerRootView>
+        <GestureHandlerRootView style={{ flex: 1 }}>
             <TranslationProvider>
-                <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-                    <Stack>
-                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    </Stack>
-                    <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-                </ThemeProvider>
+                <BottomSheetModalProvider>
+                    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+                        <Stack screenOptions={{ headerShown: false }}>
+                            <Stack.Screen name="(tabs)" />
+                            
+                            <Stack.Screen name="(stacks)" />
+                        </Stack>
+                        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+                    </ThemeProvider>
+                </BottomSheetModalProvider>
             </TranslationProvider>
         </GestureHandlerRootView>
     );

@@ -1,9 +1,8 @@
 import { Monicon } from "@monicon/native";
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform, useColorScheme } from "react-native";
+import { useColorScheme } from "react-native";
 
-import { HapticTab } from "@/components/features/tabs/haptic-tab";
 import { useTranslation } from "@/i18n";
 
 export default function TabLayout() {
@@ -12,6 +11,26 @@ export default function TabLayout() {
     const isDark = colorScheme === "dark";
 
     return (
+        <Tabs screenOptions={{
+            headerShown: false,
+        }}>
+            <Tabs.Screen
+                name="index"
+                options={{
+                    headerShown: false,
+                    title: __("Accueil"),
+                    tabBarIcon: ({ color, focused }) => (
+                        <Monicon 
+                            name={focused ? "solar:home-2-bold" : "solar:home-angle-2-linear"} 
+                            size={24} 
+                            color={color} 
+                        />
+                    ),
+                }}
+            />
+        </Tabs>
+    )
+    /*return (
         <Tabs
             screenOptions={{
                 tabBarActiveTintColor: isDark ? "#0A84FF" : "#007AFF",
@@ -83,13 +102,6 @@ export default function TabLayout() {
                     ),
                 }}
             />
-            <Tabs.Screen
-                name="builder"
-                options={{
-                    href: null,
-                    tabBarStyle: { display: "none" },
-                }}
-            />
         </Tabs>
-    );
+    );*/
 }
