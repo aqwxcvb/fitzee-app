@@ -76,7 +76,7 @@ export function ProgramBuilder() {
         <View className="flex-1 bg-base-primary-light dark:bg-base-primary-dark">
             <AnimatedBlurHeader
                 animatedHeight={headerHeight}
-                className="px-4"
+                className="px-4 overflow-hidden"
             >
                 <View>
                     <View className="flex flex-row items-center">
@@ -87,7 +87,7 @@ export function ProgramBuilder() {
                             <Monicon
                                 name="solar:alt-arrow-left-linear"
                                 size={18}
-                                color={iconColor}
+                                color={isDark ? "#ffffff" : "#000000"}
                             />
                         </TouchableOpacity>
 

@@ -31,17 +31,25 @@ export function ChooseProgram({ visible, onClose }: ChooseProgramProps) {
     }), [isDark]);
 
     useEffect(() => {
+        const modal = bottomSheetModalRef.current;
+        if(!modal) {
+            return;
+        }
+
         if(visible) {
-            bottomSheetModalRef.current?.present();
+            modal.present();
+        } else {
+            modal.dismiss();
         }
     }, [visible]);
 
+    const handleCancel = useCallback(() => onClose(), [onClose]);
     const handleDismiss = useCallback(() => onClose(), [onClose]);
+
     const handleConfirm = useCallback(() => {
         router.push("/(stacks)/program-builder");
-
-        bottomSheetModalRef.current?.dismiss();
-    }, []);
+        onClose();
+    }, [router, onClose]);
 
     const renderBackdrop = useCallback((props: any) => (
         <BottomSheetBackdrop
@@ -54,7 +62,7 @@ export function ChooseProgram({ visible, onClose }: ChooseProgramProps) {
 
     return (
         <BottomSheetModal
-            ref={bottomSheetModalRef}   
+            ref={bottomSheetModalRef}
             onDismiss={handleDismiss}
             enablePanDownToClose
             backdropComponent={renderBackdrop}
@@ -82,7 +90,7 @@ export function ChooseProgram({ visible, onClose }: ChooseProgramProps) {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        onPress={() => bottomSheetModalRef.current?.dismiss()}
+                        onPress={handleCancel}
                         activeOpacity={0.7}
                         className="py-3.5 items-center justify-center"
                     >
@@ -94,4 +102,4 @@ export function ChooseProgram({ visible, onClose }: ChooseProgramProps) {
             </BottomSheetView>
         </BottomSheetModal>
     );
-};
+}
