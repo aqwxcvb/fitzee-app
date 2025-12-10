@@ -19,7 +19,7 @@ interface BlurViewWrapperProps extends Omit<BlurViewProps, "tint" | "style"> {
 export const BlurViewWrapper: React.FC<BlurViewWrapperProps> = ({
     children,
     edges = [],
-    intensity = 80,
+    intensity = 50,
     tint,
     style,
     className,
@@ -60,7 +60,7 @@ export const AnimatedBlurHeader: React.FC<AnimatedBlurHeaderProps> = ({
     children,
     animatedHeight,
     includeTopSafeArea = true,
-    intensity = 80,
+    intensity = 50,
     tint,
     style,
     className,
@@ -70,7 +70,7 @@ export const AnimatedBlurHeader: React.FC<AnimatedBlurHeaderProps> = ({
     const insets = useSafeAreaInsets();
 
     const resolvedTint = tint ?? (isDark ? "dark" : "light");
-    const topInset = includeTopSafeArea ? insets.top : 0;
+    const topInset = includeTopSafeArea ? insets.top + 20 : 0;
 
     const totalHeight = Animated.add(animatedHeight, topInset);
 
@@ -78,6 +78,7 @@ export const AnimatedBlurHeader: React.FC<AnimatedBlurHeaderProps> = ({
         <AnimatedBlurView
             intensity={intensity}
             tint={resolvedTint}
+            experimentalBlurMethod={"dimezisBlurView"}
             style={[
                 styles.header,
                 {

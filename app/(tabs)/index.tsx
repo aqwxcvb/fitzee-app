@@ -1,5 +1,4 @@
 import { MyPrograms } from "@/components/features/home/my-programs";
-import { ChooseProgram } from "@/components/home/modals/choose-program";
 import { AutoScrollView } from "@/components/ui/auto-scroll-view";
 import { BigTitle, Caption, Headline } from "@/components/ui/typography";
 import { AutoScrollProvider } from "@/contexts/auto-scroll-context";
@@ -24,7 +23,6 @@ export default function TrainingScreen() {
     const isDark = colorScheme === "dark";
     const iconColor = isDark ? "#F2F2F7" : "#2A2A2C";
 
-    const [isModalVisible, setIsModalVisible] = useState(false);
     const [scrollEnabled, setScrollEnabled] = useState(true);
 
     return (
@@ -68,7 +66,7 @@ export default function TrainingScreen() {
                         <View className="px-5 mb-10 flex gap-3">
                             <TouchableOpacity
                                     activeOpacity={0.98}
-                                    onPress={() => setIsModalVisible(true)}
+                                    onPress={() => router.push("/(modals)/choose-program")}
                                     className="w-full flex-row items-center gap-4 rounded-[14px] p-4 bg-accent-primary-light dark:bg-accent-primary-dark"
                                 >
                                     <View className="h-10 w-10 items-center justify-center rounded-full bg-accent-primary-muted-light dark:bg-accent-primary-muted-dark">
@@ -138,15 +136,6 @@ export default function TrainingScreen() {
                     </AutoScrollView>
                 </AutoScrollProvider>
 
-                {/*<ChooseProgramModal
-                    visible={isModalVisible}
-                    onClose={() => setIsModalVisible(false)}
-                    onConfirm={(programId) => {
-                        setIsModalVisible(false);
-                        router.push("/(stack)/program-builder");
-                    }}
-                />*/}
-                <ChooseProgram visible={isModalVisible} onClose={() => setIsModalVisible(false)} />
             </SafeAreaView>
         </View>
     );

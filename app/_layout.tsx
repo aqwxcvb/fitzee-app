@@ -61,8 +61,16 @@ export default function RootLayout() {
                     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
                         <Stack screenOptions={{ headerShown: false }}>
                             <Stack.Screen name="(tabs)" />
-                            
                             <Stack.Screen name="(stacks)" />
+                            <Stack.Screen 
+                                name="(modals)" 
+                                options={{ 
+                                    presentation: "formSheet",
+                                    headerShown: false,
+                                    sheetAllowedDetents: "fitToContents",
+                                    sheetCornerRadius: 24,
+                                }} 
+                            />
                         </Stack>
                         <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
                     </ThemeProvider>

@@ -1,5 +1,4 @@
 import { AnimatedBlurHeader } from "@/components/ui/blur-view";
-import { Headline } from "@/components/ui/typography";
 import { useTranslation } from "@/i18n";
 import Monicon from "@monicon/native";
 import { useRouter } from "expo-router";
@@ -15,12 +14,13 @@ import {
     View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Headline } from "../ui/typography";
 import ExerciseSearchBar from "./components/exercise-search-bar";
 import ExerciseLibraryPanel from "./exercise-library-panel";
 import WorkoutBuilderPanel from "./workout-builder-panel";
 
 const SCREEN_WIDTH = Dimensions.get("window").width * 0.9;
-const HEADER_MAX_HEIGHT = 180;
+const HEADER_MAX_HEIGHT = 190;
 const HEADER_MIN_HEIGHT = 110;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
@@ -44,7 +44,7 @@ export function ProgramBuilder() {
 
     const searchBarHeight = scrollY.interpolate({
         inputRange: [0, HEADER_SCROLL_DISTANCE * 0.5, HEADER_SCROLL_DISTANCE],
-        outputRange: [0, 0, 56],
+        outputRange: [0, 0, 72],
         extrapolate: "clamp"
     });
 
@@ -96,13 +96,13 @@ export function ProgramBuilder() {
                             className="flex-1 ml-3"
                         >
                             <View className="flex-row items-center">
-                                <Text className="text-[17px] font-sfpro-medium tracking-tight text-content-secondary-light dark:text-content-secondary-dark" numberOfLines={1}>
+                                <Text className="max-w-[33%] text-[17px] font-sfpro-medium tracking-tight text-content-secondary-light dark:text-content-secondary-dark" numberOfLines={1}>
                                     Full Body
                                 </Text>
                                 <Text className="mx-2 text-[17px] font-sfpro-medium tracking-tight text-content-secondary-light dark:text-content-secondary-dark">
                                     /
                                 </Text>
-                                <Text className="text-[17px] font-sfpro-bold tracking-tight text-content-primary-light dark:text-content-primary-dark" numberOfLines={1}>
+                                <Text className="flex-1 text-[17px] font-sfpro-bold tracking-tight text-content-primary-light dark:text-content-primary-dark" numberOfLines={1}>
                                     {sessionName.trim().length > 0 ? sessionName : "Ma séance..."}
                                 </Text>
                             </View>
@@ -110,20 +110,17 @@ export function ProgramBuilder() {
                     </View>
 
                     <Animated.View style={{ height: searchBarHeight, opacity: searchBarOpacity, overflow: "hidden" }}>
-                        <ExerciseSearchBar value="" onChangeText={() => {}} onFilterPress={() => {}} className="mt-3" />
+                        <ExerciseSearchBar value="" onChangeText={() => {}} onFilterPress={() => {}} className="mt-4" />
                     </Animated.View>
                 </View>
 
                 <Animated.View
                     style={{ opacity: largeHeaderOpacity }}
-                    className="my-4"
+                    className="my-4 flex-1"
                 >
-                    <View className="flex-row items-center gap-4">
+                    <View className="flex-row items-center gap-4 h-14">
                         <View className="max-w-[50%]">
-                            <TouchableOpacity
-                                className="flex-row gap-2 p-4 rounded-xl bg-surface-primary-light dark:bg-surface-primary-dark overflow-hidden"
-                                onPress={() => {}}
-                            >
+                            <TouchableOpacity className="flex-1 flex-row items-center gap-2 px-4 rounded-xl bg-surface-primary-light dark:bg-surface-primary-dark">
                                 <Monicon name="solar:folder-with-files-linear" size={18} color={iconColor} />
                                 <Headline className="shrink text-content-primary-light dark:text-content-primary-dark" numberOfLines={1}>
                                     Full Body
@@ -131,12 +128,10 @@ export function ProgramBuilder() {
                                 <Monicon name="solar:alt-arrow-down-linear" size={18} color={iconColor} />
                             </TouchableOpacity>
                         </View>
-
                         <View className="flex-1">
                             <TextInput
-                                className="flex-1 p-4 text-[17px] font-sfpro-semibold tracking-tight text-content-primary-light dark:text-content-primary-dark rounded-xl bg-surface-primary-light dark:bg-surface-primary-dark"
+                                className="flex-1 px-4 text-[15px] font-sfpro-semibold tracking-tight text-content-primary-light dark:text-content-primary-dark bg-surface-primary-light dark:bg-surface-primary-dark rounded-xl"
                                 placeholder={__("Ma séance...")}
-                                autoCorrect={false}
                                 value={sessionName}
                                 onChangeText={setSessionName}
                             />
@@ -157,11 +152,11 @@ export function ProgramBuilder() {
                     overScrollMode="never"
                 >
                     <View style={{ width: SCREEN_WIDTH }} className="flex-1">
-                        <ExerciseLibraryPanel currentHeaderHeight={Animated.add(headerHeight, insets.top)} headerScrollDistance={HEADER_SCROLL_DISTANCE} scrollY={scrollY} scrollViewRef={exerciseListRef} />
+                        <ExerciseLibraryPanel currentHeaderHeight={Animated.add(headerHeight, insets.top + 20)} headerScrollDistance={HEADER_SCROLL_DISTANCE} scrollY={scrollY} scrollViewRef={exerciseListRef} />
                     </View>
 
                     <View style={{ width: SCREEN_WIDTH }} className="flex-1">
-                        <WorkoutBuilderPanel currentHeaderHeight={Animated.add(headerHeight, insets.top)} headerScrollDistance={HEADER_SCROLL_DISTANCE} />
+                        <WorkoutBuilderPanel currentHeaderHeight={Animated.add(headerHeight, insets.top + 20)} headerScrollDistance={HEADER_SCROLL_DISTANCE} />
                     </View>
                 </ScrollView>
             </View>
