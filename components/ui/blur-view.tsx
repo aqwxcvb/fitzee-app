@@ -78,7 +78,6 @@ export const AnimatedBlurHeader: React.FC<AnimatedBlurHeaderProps> = ({
         <AnimatedBlurView
             intensity={intensity}
             tint={resolvedTint}
-            experimentalBlurMethod={"dimezisBlurView"}
             style={[
                 styles.header,
                 {

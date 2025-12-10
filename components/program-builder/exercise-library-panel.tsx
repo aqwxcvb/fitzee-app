@@ -182,7 +182,7 @@ const ExerciseLibraryPanel: React.FC<{ currentHeaderHeight: AnimatedValue, heade
         >
             <Animated.View style={{ height: currentHeaderHeight }} />
             
-            <Caption className="text-content-secondary-light dark:text-content-secondary-dark">
+            <Caption className="my-4 text-content-secondary-light dark:text-content-secondary-dark">
                 {__("Tous les exercices")}
             </Caption>
 

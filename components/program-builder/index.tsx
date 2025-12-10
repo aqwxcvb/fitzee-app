@@ -13,19 +13,19 @@ import ExerciseLibraryPanel from "./exercise-library-panel";
 import { HEADER_SCROLL_DISTANCE, useHeaderAnimations } from "./hooks/use-header-animations";
 import WorkoutBuilderPanel from "./workout-builder-panel";
 
-const SCREEN_WIDTH = Dimensions.get("window").width * 0.9;
+const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export function ProgramBuilder() {
     const { __ } = useTranslation();
     const insets = useSafeAreaInsets();
 
     const [sessionName, setSessionName] = useState("");
+    const [searchValue, setSearchValue] = useState("");
 
     const scrollY = useRef(new Animated.Value(0)).current;
     const { headerHeight } = useHeaderAnimations(scrollY);
 
     const exerciseListRef = useRef<ScrollView>(null);
-
     const handleScrollToTop = () => exerciseListRef.current?.scrollTo({ y: 0, animated: true });
 
     const addMenuOptions = [
@@ -45,6 +45,8 @@ export function ProgramBuilder() {
                 scrollY={scrollY}
                 sessionName={sessionName}
                 onSessionNameChange={setSessionName}
+                searchValue={searchValue}
+                onSearchValueChange={setSearchValue}
             />
 
             <View className="flex-1">
@@ -55,6 +57,7 @@ export function ProgramBuilder() {
                     decelerationRate="fast"
                     bounces={false}
                     overScrollMode="never"
+                    contentOffset={{ x: SCREEN_WIDTH, y: 0 }}
                 >
                     <View style={{ width: SCREEN_WIDTH }} className="flex-1">
                         <ExerciseLibraryPanel 

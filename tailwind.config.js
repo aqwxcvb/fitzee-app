@@ -31,11 +31,11 @@ module.exports = {
                     },
                     secondary: {
                         dark: "#2c2c2e",
-                        light: "#ffffff",
+                        light: "#eeeeef",
 
                         muted: {
                             dark: "#3A3A3C",
-                            light: "#EDEDED"
+                            light: "#E7E8EF"
                         }
                     }
                 },

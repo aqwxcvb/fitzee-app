@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { Animated } from "react-native";
 
-export const HEADER_MAX_HEIGHT = 190;
-export const HEADER_MIN_HEIGHT = 110;
+export const HEADER_MAX_HEIGHT = 180;
+export const HEADER_MIN_HEIGHT = 115;
 export const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 export interface HeaderAnimatedValues {

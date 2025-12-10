@@ -6,7 +6,7 @@ import { MuscleBadge } from "./muscle-badge";
 
 const ExerciseCard = ({ exercise }: { exercise: Exercise }) => {
     return (
-        <Pressable className="flex flex-row items-center" style={{
+        <Pressable className="my-2 p-4 flex flex-row items-center bg-surface-primary-light dark:bg-surface-primary-dark rounded-xl" style={{
             height: 140,
         }}>
             <View className="w-24 h-24 items-center overflow-hidden mr-4">

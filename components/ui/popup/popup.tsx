@@ -4,6 +4,7 @@ import React, { Fragment, useEffect, useRef, useState } from "react";
 import {
     Animated,
     LayoutChangeEvent,
+    Platform,
     Pressable,
     TouchableOpacity,
     useColorScheme,
@@ -79,11 +80,31 @@ export function Popup({
         }
     };
 
+    const actionSheetShadow = Platform.select({
+        ios: colorScheme === "dark"
+            ? {
+                shadowColor: "#000",
+                shadowOpacity: 0.8,
+                shadowRadius: 28,
+                shadowOffset: { width: -12, height: -12 },
+            }
+            : {
+                shadowColor: "#000",
+                shadowOpacity: 0.15,
+                shadowRadius: 20,
+                shadowOffset: { width: 0, height: 0 },
+            },
+        android: {
+            elevation: 3,
+            shadowColor: "#000",
+        },
+    });
+
     return (
         <>
             {showOverlay && (
                 <Animated.View
-                    className="absolute inset-0 bg-black/40"
+                    className="absolute inset-0"
                     style={{ opacity: opacityAnim, zIndex: 10 }}
                     pointerEvents={isOpen ? "auto" : "none"}
                 >
@@ -92,16 +113,16 @@ export function Popup({
             )}
 
             <Animated.View
-                className="absolute bg-base-secondary-light dark:bg-base-secondary-dark rounded-xl overflow-hidden"
+                className="absolute bg-surface-primary-light dark:bg-surface-primary-dark rounded-xl"
                 onLayout={handleLayout}
                 style={[
                     getPopupPositionStyle(),
+                    actionSheetShadow,
                     {
                         width,
                         opacity: opacityAnim,
                         transform: [{ scale: scaleAnim }],
                         zIndex: 10,
-                        position: "absolute",
                     },
                 ]}
                 pointerEvents={isOpen ? "auto" : "none"}
@@ -114,6 +135,7 @@ export function Popup({
                                 className="flex-1 flex-row items-center gap-4"
                             >
                                 <Monicon name={option.icon} size={24} color={accentColor} />
+
                                 <Body className="shrink text-content-primary-light dark:text-content-primary-dark">
                                     {option.label}
                                 </Body>

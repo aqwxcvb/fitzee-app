@@ -1,4 +1,3 @@
-import { AnimatedBlurHeader } from "@/components/ui/blur-view";
 import { Headline } from "@/components/ui/typography";
 import { useTranslation } from "@/i18n";
 import Monicon from "@monicon/native";
@@ -12,6 +11,7 @@ import {
     useColorScheme,
     View
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderAnimations } from "../../hooks/use-header-animations";
 import ExerciseSearchBar from "../exercise-search-bar";
 
@@ -19,25 +19,32 @@ interface HeaderProps {
     scrollY: Animated.Value;
     sessionName: string;
     onSessionNameChange: (name: string) => void;
+    searchValue: string;
+    onSearchValueChange: (value: string) => void;
 }
 
-export function Header({ scrollY, sessionName, onSessionNameChange }: HeaderProps) {
+export function Header({ scrollY, sessionName, onSessionNameChange, searchValue, onSearchValueChange }: HeaderProps) {
     const { __ } = useTranslation();
     const router = useRouter();
+    
     const isDark = useColorScheme() === "dark";
     const iconColor = isDark ? "#8e8e93" : "#636366";
-
+    const insets = useSafeAreaInsets();
     const animatedValues = useHeaderAnimations(scrollY);
+    
+
+    const topInset = insets.top + 20;
+    const totalHeight = Animated.add(animatedValues.headerHeight, topInset);
 
     return (
-        <AnimatedBlurHeader
-            animatedHeight={animatedValues.headerHeight}
-            className="px-4 overflow-hidden"
+        <Animated.View
+            style={{ height: totalHeight, paddingTop: topInset }}
+            className="px-4 overflow-hidden absolute inset-0 bg-surface-primary-light dark:bg-surface-primary-dark z-10"
         >
             <View>
                 <View className="flex flex-row items-center">
                     <TouchableOpacity
-                        className="self-start flex items-center px-4 py-2 rounded-lg bg-surface-primary-light dark:bg-surface-primary-dark overflow-hidden"
+                        className="self-start flex items-center px-4 py-2 rounded-lg bg-surface-primary-muted-light dark:bg-surface-primary-muted-dark overflow-hidden"
                         onPress={() => router.back()}
                     >
                         <Monicon
@@ -66,7 +73,7 @@ export function Header({ scrollY, sessionName, onSessionNameChange }: HeaderProp
                 </View>
 
                 <Animated.View style={{ height: animatedValues.searchBarHeight, opacity: animatedValues.searchBarOpacity, overflow: "hidden" }}>
-                    <ExerciseSearchBar value="" onChangeText={() => {}} onFilterPress={() => {}} className="mt-4" />
+                    <ExerciseSearchBar value={searchValue} onChangeText={onSearchValueChange} onFilterPress={() => {}} className="mt-4" />
                 </Animated.View>
             </View>
 
@@ -74,10 +81,10 @@ export function Header({ scrollY, sessionName, onSessionNameChange }: HeaderProp
                 style={{ opacity: animatedValues.largeHeaderOpacity }}
                 className="my-4 flex-1"
             >
-                <View className="flex-row items-center gap-4 h-14">
+                <View className="flex-row items-center gap-4 h-[52px]">
                     <View className="max-w-[50%]">
                         <TouchableOpacity 
-                            className="flex-1 flex-row items-center gap-2 px-4 rounded-xl bg-surface-primary-light dark:bg-surface-primary-dark"
+                            className="flex-1 flex-row items-center gap-2 px-4 rounded-xl bg-surface-primary-muted-light dark:bg-surface-primary-muted-dark"
                             onPress={() => router.push("/(modals)/choose-program")}
                         >
                             <Monicon name="solar:folder-with-files-linear" size={18} color={iconColor} />
@@ -87,9 +94,9 @@ export function Header({ scrollY, sessionName, onSessionNameChange }: HeaderProp
                             <Monicon name="solar:alt-arrow-down-linear" size={18} color={iconColor} />
                         </TouchableOpacity>
                     </View>
-                    <View className="flex-1">
+                    <View className="flex-1 justify-center">
                         <TextInput
-                            className="flex-1 px-4 text-[15px] font-sfpro-semibold tracking-tight text-content-primary-light dark:text-content-primary-dark bg-surface-primary-light dark:bg-surface-primary-dark rounded-xl"
+                            className="flex-1 px-4 text-[17px] font-sfpro-semibold tracking-tight text-content-primary-light dark:text-content-primary-dark bg-surface-primary-muted-light dark:bg-surface-primary-muted-dark rounded-xl"
                             placeholder={__("Ma séance...")}
                             value={sessionName}
                             onChangeText={onSessionNameChange}
@@ -97,8 +104,8 @@ export function Header({ scrollY, sessionName, onSessionNameChange }: HeaderProp
                     </View>
                 </View>
 
-                <ExerciseSearchBar value="" onChangeText={() => {}} onFilterPress={() => {}} className="my-4" />
+                <ExerciseSearchBar value={searchValue} onChangeText={onSearchValueChange} onFilterPress={() => {}} className="my-4" />
             </Animated.View>
-        </AnimatedBlurHeader>
+        </Animated.View>
     );
 }

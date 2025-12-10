@@ -3,7 +3,7 @@ import { LayoutChangeEvent, View } from "react-native";
 import { Popup } from "./popup";
 import { PopupTriggerPosition, PopupWrapperProps } from "./types";
 
-export function PopupWrapper({ children, isOpen, onClose, options, offset = 8, width = 240, showOverlay = true }: PopupWrapperProps) {
+export function PopupWrapper({ children, isOpen, onClose, options, offset = 12, width = 240, showOverlay = true }: PopupWrapperProps) {
     const [triggerPosition, setTriggerPosition] = useState<PopupTriggerPosition | undefined>();
 
     const handleLayout = useCallback((event: LayoutChangeEvent) => {

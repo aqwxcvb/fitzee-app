@@ -8,13 +8,12 @@ export interface MuscleBadgeProps {
 export const MuscleBadge = ({ muscle }: MuscleBadgeProps) => {
     const isPrimary = muscle.type === "primary";
     const contentColor = isPrimary ? "text-content-primary-light dark:text-content-primary-dark" : "text-content-secondary-light dark:text-content-secondary-dark";
-    const borderColor = isPrimary ? "border-stroke-primary-light dark:border-stroke-primary-dark" : "border-stroke-secondary-light dark:border-stroke-secondary-dark";
-    const name = muscle.name.length > 7 ? muscle.name.slice(0, 7) + "." : muscle.name;
+    const borderColor = "border-stroke-secondary-light dark:border-stroke-secondary-dark";
 
     return (    
-        <View className={`rounded-xl self-start inline-flex px-2 py-1 bg-surface-primary-light dark:bg-surface-primary-dark border ${borderColor}`}>
-            <Text className={`text-xs font-sfpro-medium ${contentColor}`}>
-                {name}
+        <View className={`rounded-xl self-start inline-flex px-2 py-1 bg-surface-primary-muted-light dark:bg-surface-primary-muted-dark border ${borderColor}`}>
+            <Text className={`text-xs font-sfpro-regular ${contentColor}`}>
+                {muscle.name}
             </Text>
         </View>
     );

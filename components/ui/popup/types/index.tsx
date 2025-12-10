@@ -24,7 +24,7 @@ export type PopupProps = {
 };
 
 export type PopupWrapperProps = {
-    children: React.ReactElement<{ onLayout?: (event: LayoutChangeEvent) => void; ref?: React.Ref<View> }>;
+    children: React.ReactElement<{ onLayout?: (event: LayoutChangeEvent) => void; ref?: React.Ref<any> }>;
     isOpen: boolean;
     onClose: () => void;
     options: PopupOption[];

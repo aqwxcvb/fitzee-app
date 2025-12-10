@@ -1,6 +1,7 @@
-import { Caption } from "@/components/ui/typography";
+import { Body, Caption } from "@/components/ui/typography";
 import { useTranslation } from "@/i18n";
-import { Animated } from "react-native";
+import { Animated, View } from "react-native";
+import { SwipeIndicator } from "./components/swipe-indicator";
 
 type AnimatedValue = number | Animated.AnimatedAddition<number> | Animated.AnimatedInterpolation<number>;
 
@@ -21,9 +22,17 @@ const WorkoutBuilderPanel: React.FC<{ currentHeaderHeight: AnimatedValue, header
         >
             <Animated.View style={{ height: currentHeaderHeight }} />
             
-            <Caption className="text-content-secondary-light dark:text-content-secondary-dark">
+            <Caption className="my-4 text-content-secondary-light dark:text-content-secondary-dark">
                 {__("Récapitulatif de votre séance")}
             </Caption>
+
+            <View className="flex-1 items-center justify-center gap-6">
+                <SwipeIndicator />
+                
+                <Body className="text-center text-content-tertiary-light dark:text-content-tertiary-dark px-8">
+                    {__("Swipe vers la droite pour parcourir les exercices.")}
+                </Body>
+            </View>
         </Animated.ScrollView>
     );
 };
