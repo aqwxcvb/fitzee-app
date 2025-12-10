@@ -84,7 +84,7 @@ export function Popup({
             {showOverlay && (
                 <Animated.View
                     className="absolute inset-0 bg-black/40"
-                    style={{ opacity: opacityAnim, zIndex: 100 }}
+                    style={{ opacity: opacityAnim, zIndex: 10 }}
                     pointerEvents={isOpen ? "auto" : "none"}
                 >
                     <Pressable className="flex-1" onPress={onClose} />
@@ -100,7 +100,7 @@ export function Popup({
                         width,
                         opacity: opacityAnim,
                         transform: [{ scale: scaleAnim }],
-                        zIndex: 101,
+                        zIndex: 10,
                         position: "absolute",
                     },
                 ]}

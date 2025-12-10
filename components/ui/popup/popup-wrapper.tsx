@@ -20,6 +20,9 @@ export function PopupWrapper({ children, isOpen, onClose, options, offset = 8, w
                 originalOnLayout(event);
             }
         },
+        style: {
+            zIndex: 10,
+        }
     } as Partial<{ onLayout: (event: LayoutChangeEvent) => void }>);
 
     return (
