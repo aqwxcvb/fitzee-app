@@ -1,7 +1,6 @@
 import { TranslationProvider } from "@/i18n";
 import { JetBrainsMono_400Regular, JetBrainsMono_500Medium, JetBrainsMono_700Bold } from "@expo-google-fonts/jetbrains-mono";
 import { PlayfairDisplay_400Regular, PlayfairDisplay_500Medium, PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from "@expo-google-fonts/playfair-display";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
@@ -57,24 +56,22 @@ export default function RootLayout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <TranslationProvider>
-                <BottomSheetModalProvider>
-                    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-                        <Stack screenOptions={{ headerShown: false }}>
-                            <Stack.Screen name="(tabs)" />
-                            <Stack.Screen name="(stacks)" />
-                            <Stack.Screen 
-                                name="(modals)" 
-                                options={{ 
-                                    presentation: "formSheet",
-                                    headerShown: false,
-                                    sheetAllowedDetents: "fitToContents",
-                                    sheetCornerRadius: 24,
-                                }} 
-                            />
-                        </Stack>
-                        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-                    </ThemeProvider>
-                </BottomSheetModalProvider>
+                <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+                    <Stack screenOptions={{ headerShown: false }}>
+                        <Stack.Screen name="(tabs)" />
+                        <Stack.Screen name="(stacks)" />
+                        <Stack.Screen 
+                            name="(modals)" 
+                            options={{ 
+                                presentation: "formSheet",
+                                headerShown: false,
+                                sheetAllowedDetents: "fitToContents",
+                                sheetCornerRadius: 24,
+                            }} 
+                        />
+                    </Stack>
+                    <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+                </ThemeProvider>
             </TranslationProvider>
         </GestureHandlerRootView>
     );
