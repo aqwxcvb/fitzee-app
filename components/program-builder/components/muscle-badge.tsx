@@ -12,7 +12,7 @@ export const MuscleBadge = ({ muscle }: MuscleBadgeProps) => {
     const name = muscle.name.length > 7 ? muscle.name.slice(0, 7) + "." : muscle.name;
 
     return (    
-        <View className={`rounded-xl self-start inline-flex px-2 py-1 border ${borderColor}`}>
+        <View className={`rounded-xl self-start inline-flex px-2 py-1 bg-surface-primary-light dark:bg-surface-primary-dark border ${borderColor}`}>
             <Text className={`text-xs font-sfpro-medium ${contentColor}`}>
                 {name}
             </Text>
