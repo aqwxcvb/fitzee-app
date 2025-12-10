@@ -44,7 +44,7 @@ export function Header({ scrollY, sessionName, onSessionNameChange, searchValue,
             <View>
                 <View className="flex flex-row items-center">
                     <TouchableOpacity
-                        className="self-start flex items-center px-4 py-2 rounded-lg bg-surface-primary-muted-light dark:bg-surface-primary-muted-dark overflow-hidden"
+                        className="self-start flex items-center px-4 py-3 rounded-xl bg-surface-primary-muted-light dark:bg-surface-primary-muted-dark overflow-hidden"
                         onPress={() => router.back()}
                     >
                         <Monicon

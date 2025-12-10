@@ -69,6 +69,7 @@ export default function RootLayout() {
                                 sheetCornerRadius: 24,
                             }} 
                         />
+                        <Stack.Screen name="program-builder" options={{ gestureEnabled: false }} />
                     </Stack>
                     <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
                 </ThemeProvider>

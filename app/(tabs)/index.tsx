@@ -66,7 +66,7 @@ export default function TrainingScreen() {
                         <View className="px-5 mb-10 flex gap-3">
                             <TouchableOpacity
                                     activeOpacity={0.98}
-                                    onPress={() => router.push("/(stacks)/program-builder")}
+                                    onPress={() => router.push("/program-builder")}
                                     className="w-full flex-row items-center gap-4 rounded-[14px] p-4 bg-accent-primary-light dark:bg-accent-primary-dark"
                                 >
                                     <View className="h-10 w-10 items-center justify-center rounded-full bg-accent-primary-muted-light dark:bg-accent-primary-muted-dark">

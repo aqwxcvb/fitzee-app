@@ -28,9 +28,9 @@ const WorkoutBuilderPanel: React.FC<{ currentHeaderHeight: AnimatedValue, header
 
             <View className="flex-1 items-center justify-center gap-6">
                 <SwipeIndicator />
-                
+
                 <Body className="text-center text-content-tertiary-light dark:text-content-tertiary-dark px-8">
-                    {__("Swipe vers la droite pour parcourir les exercices.")}
+                    {__("Swipe vers la droite pour parcourir tous les exercices.")}
                 </Body>
             </View>
         </Animated.ScrollView>

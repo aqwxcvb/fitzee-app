@@ -1,0 +1,8 @@
+- Modal pour créer un programme
+- Modal pour créer un exercice personnalisé
+- Sélectionner plusieurs exercises
+    - Ajouter aux programmes
+    - Grouper plusieurs exercices
+- Filtres
+- TouchableOpacityHaptic
+- PressableHaptic
