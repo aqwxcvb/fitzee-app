@@ -1,14 +1,14 @@
-import Monicon from "@monicon/native";
+import { useTranslation } from "@/i18n";
 import { useRef, useState } from "react";
 import {
     Animated,
     Dimensions,
     ScrollView,
-    TouchableOpacity,
     View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Header } from "./components/layout/header";
+import { PillButton } from "./components/pill-button";
 import ExerciseLibraryPanel from "./exercise-library-panel";
 import { HEADER_SCROLL_DISTANCE, useHeaderAnimations } from "./hooks/use-header-animations";
 import WorkoutBuilderPanel from "./workout-builder-panel";
@@ -16,6 +16,7 @@ import WorkoutBuilderPanel from "./workout-builder-panel";
 const SCREEN_WIDTH = Dimensions.get("window").width * 0.9;
 
 export function ProgramBuilder() {
+    const { __ } = useTranslation();
     const insets = useSafeAreaInsets();
 
     const [sessionName, setSessionName] = useState("");
@@ -27,9 +28,16 @@ export function ProgramBuilder() {
 
     const handleScrollToTop = () => exerciseListRef.current?.scrollTo({ y: 0, animated: true });
 
-    const handleAddAction = () => {
-        // TODO: Implémenter les actions du bouton +
-    };
+    const addMenuOptions = [
+        {
+            label: __("Créer un exercice personnalisé"),
+            icon: "solar:add-circle-linear",
+            onPress: () => {
+                // TODO: Créer un exercice personnalisé
+                console.log("Créer un exercice personnalisé");
+            },
+        },
+    ];
 
     return (
         <View className="flex-1 bg-base-primary-light dark:bg-base-primary-dark">
@@ -66,23 +74,10 @@ export function ProgramBuilder() {
                 </ScrollView>
             </View>
 
-            <View className="absolute bottom-8 right-6 flex-row rounded-full bg-accent-primary-light dark:bg-accent-primary-dark shadow-lg overflow-hidden">
-                <TouchableOpacity
-                    onPress={handleScrollToTop}
-                    className="w-16 h-16 items-center justify-center"
-                >
-                    <Monicon name="solar:alt-arrow-up-linear" size={22} color="#ffffff" />
-                </TouchableOpacity>
-
-                <View className="w-[1px] h-1/2 self-center bg-accent-primary-stroke-muted-light dark:bg-accent-primary-stroke-muted-dark" />
-
-                <TouchableOpacity
-                    onPress={handleAddAction}
-                    className="w-16 h-16 items-center justify-center"
-                >
-                    <Monicon name="ic:twotone-plus" size={22} color="#ffffff" />
-                </TouchableOpacity>
-            </View>
+            <PillButton 
+                onScrollToTop={handleScrollToTop} 
+                options={addMenuOptions} 
+            />
         </View>
     );
 };
