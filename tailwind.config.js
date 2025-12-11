@@ -110,8 +110,8 @@ module.exports = {
                 },
                 stroke: {
                     primary: {
-                        dark: "#717176",
-                        light: "#9d9da0"
+                        dark: "#2A2A2C",
+                        light: "#F2F2F7"
                     },
                     secondary: {
                         dark: "#444447",
@@ -131,5 +131,5 @@ module.exports = {
             }
         }
     },
-    plugins: []
+    plugins: [],
 };

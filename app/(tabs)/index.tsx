@@ -29,7 +29,7 @@ export default function TrainingScreen() {
         <View className="flex-1 bg-base-primary-light dark:bg-base-primary-dark">
             <LinearGradient
                 colors={
-                    isDark ? ["#2A2A2C", "#1A1B1D", "#000000"] : ["#F7F8FA", "#F3F5FB", "#EBEDF0"]
+                    isDark ? ["#2A2A2C", "#1A1B1D", "#000000"] : ["#FFFFFF", "#fafafa", "#f2f2f6"]
                 }
                 locations={[0, 0.55, 1]}
                 style={{

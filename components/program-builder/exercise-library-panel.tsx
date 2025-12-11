@@ -1,7 +1,7 @@
-import { Caption } from "@/components/ui/typography";
 import { useTranslation } from "@/i18n";
 import { Animated, ScrollView } from "react-native";
 import ExerciseCard from "./components/exercise-card";
+import ExercisesWrapper from "./components/exercises-wrapper";
 import { Exercise } from "./types/exercise";
 
 type AnimatedValue = number | Animated.AnimatedAddition<number> | Animated.AnimatedInterpolation<number>;
@@ -177,18 +177,16 @@ const ExerciseLibraryPanel: React.FC<{ currentHeaderHeight: AnimatedValue, heade
             )}
             contentContainerStyle={{
                 flexGrow: 1,
-                paddingBottom: headerScrollDistance,
+                paddingBottom: headerScrollDistance + 32, // 32px it's for pill button
             }}
         >
             <Animated.View style={{ height: currentHeaderHeight }} />
             
-            <Caption className="my-4 text-content-secondary-light dark:text-content-secondary-dark">
-                {__("Tous les exercices")}
-            </Caption>
-
-            {EXERCISES.map((exercise) => (
-                <ExerciseCard key={exercise.id} exercise={exercise} />
-            ))}
+            <ExercisesWrapper>
+                {EXERCISES.map((exercise) => (
+                    <ExerciseCard key={exercise.id} exercise={exercise} />
+                ))}
+            </ExercisesWrapper>
         </Animated.ScrollView>
     );
 };

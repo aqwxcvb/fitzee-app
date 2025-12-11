@@ -32,14 +32,16 @@ export function Header({ scrollY, sessionName, onSessionNameChange, searchValue,
     const insets = useSafeAreaInsets();
     const animatedValues = useHeaderAnimations(scrollY);
     
-
     const topInset = insets.top + 20;
     const totalHeight = Animated.add(animatedValues.headerHeight, topInset);
 
     return (
         <Animated.View
-            style={{ height: totalHeight, paddingTop: topInset }}
-            className="px-4 overflow-hidden absolute inset-0 bg-surface-primary-light dark:bg-surface-primary-dark z-10"
+            style={{
+                height: totalHeight,
+                paddingTop: topInset
+            }}
+            className="px-4 overflow-hidden absolute inset-0 bg-surface-primary-light dark:bg-surface-primary-dark z-10 border-b border-stroke-primary-light dark:border-stroke-primary-dark"
         >
             <View>
                 <View className="flex flex-row items-center">
