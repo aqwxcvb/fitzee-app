@@ -18,7 +18,7 @@ const ExerciseCard = ({ displayMode = "grid", exercise }: ExerciseCardProps) => 
 
 const ExerciseCardGrid = ({ exercise }: ExerciseCardProps) => {
     return (
-        <Pressable className="w-[49%] flex-col items-center bg-surface-primary-light dark:bg-surface-primary-dark rounded-xl overflow-hidden">
+        <Pressable className="flex-1 h-[230px] flex-col items-center bg-surface-primary-light dark:bg-surface-primary-dark rounded-xl overflow-hidden mx-1">
             <View className="w-full h-28 bg-surface-secondary-light dark:bg-surface-secondary-dark items-center justify-center overflow-hidden">                
                 <TouchableOpacity
                     onPress={() => {
@@ -39,10 +39,10 @@ const ExerciseCardGrid = ({ exercise }: ExerciseCardProps) => {
                 </View>
             </View>
             <View className="flex-1 justify-start gap-3 p-4">
-                <Headline numberOfLines={2} className="text-content-primary-light dark:text-content-primary-dark">
+                <Headline numberOfLines={2} className="text-[16px] text-content-primary-light dark:text-content-primary-dark">
                     {exercise.name}
                 </Headline>
-                <View className="flex flex-row flex-wrap gap-2">
+                <View className="flex flex-row flex-wrap gap-x-1 gap-y-2">
                     {exercise.muscles.map(muscle => (
                         <MuscleBadge key={muscle.id} muscle={muscle} />
                     ))}
@@ -63,7 +63,7 @@ const ExerciseCardList = ({ exercise }: ExerciseCardProps) => {
                 </View>
             </View>
             <View className="flex-1 py-4 flex gap-4">
-                <Headline numberOfLines={2} className="text-content-primary-light dark:text-content-primary-dark">
+                <Headline numberOfLines={2} className="text-[16px] text-content-primary-light dark:text-content-primary-dark">
                     {exercise.name}
                 </Headline>
                 <View className="flex flex-row flex-wrap gap-x-1 gap-y-2">
