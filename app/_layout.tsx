@@ -1,3 +1,4 @@
+import { ActionSheetProvider } from "@/components/ui/action-sheet/action-sheet-context";
 import { TranslationProvider } from "@/i18n";
 import { JetBrainsMono_400Regular, JetBrainsMono_500Medium, JetBrainsMono_700Bold } from "@expo-google-fonts/jetbrains-mono";
 import { PlayfairDisplay_400Regular, PlayfairDisplay_500Medium, PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from "@expo-google-fonts/playfair-display";
@@ -57,21 +58,23 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <TranslationProvider>
                 <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-                    <Stack screenOptions={{ headerShown: false }}>
-                        <Stack.Screen name="(tabs)" />
-                        <Stack.Screen name="(stacks)" />
-                        <Stack.Screen 
-                            name="(modals)" 
-                            options={{ 
-                                presentation: "formSheet",
-                                headerShown: false,
-                                sheetAllowedDetents: "fitToContents",
-                                sheetCornerRadius: 24,
-                            }} 
-                        />
-                        <Stack.Screen name="program-builder" options={{ gestureEnabled: false }} />
-                    </Stack>
-                    <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+                    <ActionSheetProvider>
+                        <Stack screenOptions={{ headerShown: false }}>
+                            <Stack.Screen name="(tabs)" />
+                            <Stack.Screen name="(stacks)" />
+                            <Stack.Screen 
+                                name="(modals)" 
+                                options={{ 
+                                    presentation: "formSheet",
+                                    headerShown: false,
+                                    sheetAllowedDetents: "fitToContents",
+                                    sheetCornerRadius: 24,
+                                }} 
+                            />
+                            <Stack.Screen name="program-builder" options={{ gestureEnabled: false }} />
+                        </Stack>
+                        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+                    </ActionSheetProvider>
                 </ThemeProvider>
             </TranslationProvider>
         </GestureHandlerRootView>

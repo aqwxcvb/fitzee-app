@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { Animated } from "react-native";
 
-export const HEADER_MAX_HEIGHT = 180;
-export const HEADER_MIN_HEIGHT = 115;
+export const HEADER_MAX_HEIGHT = 220;
+export const HEADER_MIN_HEIGHT = 155;
 export const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 export interface HeaderAnimatedValues {
@@ -33,7 +33,7 @@ export function useHeaderAnimations(scrollY: Animated.Value): HeaderAnimatedValu
 
         const searchBarHeight = scrollY.interpolate({
             inputRange: [0, HEADER_SCROLL_DISTANCE * 0.5, HEADER_SCROLL_DISTANCE],
-            outputRange: [0, 0, 72],
+            outputRange: [0, 0, HEADER_MIN_HEIGHT],
             extrapolate: "clamp"
         });
 

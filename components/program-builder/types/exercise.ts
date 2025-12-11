@@ -7,10 +7,10 @@ export interface Muscle {
 }
 
 export interface Exercise {
-    id: string;
+    id: number;
     name: string;
     muscles: Muscle[];
-    icon: string;
+    icon?: string;
     type?: "exercise" | "group";
     children?: Exercise[];
 }

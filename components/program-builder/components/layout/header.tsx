@@ -75,7 +75,7 @@ export function Header({ scrollY, sessionName, onSessionNameChange, searchValue,
                 </View>
 
                 <Animated.View style={{ height: animatedValues.searchBarHeight, opacity: animatedValues.searchBarOpacity, overflow: "hidden" }}>
-                    <ExerciseSearchBar value={searchValue} onChangeText={onSearchValueChange} onFilterPress={() => {}} className="mt-4" />
+                    <ExerciseSearchBar value={searchValue} onChangeText={onSearchValueChange} onFilterPress={() => {}} />
                 </Animated.View>
             </View>
 
@@ -106,7 +106,7 @@ export function Header({ scrollY, sessionName, onSessionNameChange, searchValue,
                     </View>
                 </View>
 
-                <ExerciseSearchBar value={searchValue} onChangeText={onSearchValueChange} onFilterPress={() => {}} className="my-4" />
+                <ExerciseSearchBar value={searchValue} onChangeText={onSearchValueChange} onFilterPress={() => {}} />
             </Animated.View>
         </Animated.View>
     );

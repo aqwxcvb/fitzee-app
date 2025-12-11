@@ -30,17 +30,6 @@ export function ProgramBuilder() {
     const exerciseListRef = useRef<FlashListRef<Exercise> | null>(null);
     const handleScrollToTop = () => exerciseListRef.current?.scrollToOffset({ offset: 0, animated: true });
 
-    const addMenuOptions = [
-        {
-            label: __("Créer un exercice personnalisé"),
-            icon: "solar:add-circle-linear",
-            onPress: () => {
-                // TODO: Créer un exercice personnalisé
-                console.log("Créer un exercice personnalisé");
-            },
-        },
-    ];
-
     return (
         <View className="flex-1 bg-base-primary-light dark:bg-base-primary-dark">
             <Header
@@ -57,8 +46,6 @@ export function ProgramBuilder() {
                     pagingEnabled
                     showsHorizontalScrollIndicator={false}
                     decelerationRate="fast"
-                    bounces={false}
-                    overScrollMode="never"
                     contentOffset={{ x: SCREEN_WIDTH, y: 0 }}
                 >
                     <View style={{ width: SCREEN_WIDTH }} className="flex-1">
@@ -81,7 +68,6 @@ export function ProgramBuilder() {
 
             <PillButton 
                 onScrollToTop={handleScrollToTop} 
-                options={addMenuOptions} 
             />
         </View>
     );

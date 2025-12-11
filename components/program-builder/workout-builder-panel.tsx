@@ -22,7 +22,7 @@ const WorkoutBuilderPanel: React.FC<{ currentHeaderHeight: AnimatedValue, header
         >
             <Animated.View style={{ height: currentHeaderHeight }} />
             
-            <Caption className="my-4 text-content-secondary-light dark:text-content-secondary-dark">
+            <Caption className="text-content-secondary-light dark:text-content-secondary-dark">
                 {__("Récapitulatif de votre séance")}
             </Caption>
 

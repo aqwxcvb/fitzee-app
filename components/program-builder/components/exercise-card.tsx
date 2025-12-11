@@ -10,15 +10,17 @@ type ExerciseCardProps = {
     exercise: Exercise;
 }
 
-const ExerciseCard = ({ displayMode = "grid", exercise }: ExerciseCardProps) => {
+export function ExerciseCard ({ displayMode = "grid", exercise }: ExerciseCardProps) {
     return displayMode === "grid" 
         ? <ExerciseCardGrid exercise={exercise} />
         : <ExerciseCardList exercise={exercise} />;
 };
 
 const ExerciseCardGrid = ({ exercise }: ExerciseCardProps) => {
+    const marginHorizontal = exercise.id % 2 > 0 ? "mr-2" : "ml-2";
+    
     return (
-        <Pressable className="flex-1 h-[230px] flex-col items-center bg-surface-primary-light dark:bg-surface-primary-dark rounded-xl overflow-hidden mx-1">
+        <Pressable className={`flex-1 flex-col items-center bg-surface-primary-light dark:bg-surface-primary-dark rounded-xl overflow-hidden ${marginHorizontal} mb-4`}>
             <View className="w-full h-28 bg-surface-secondary-light dark:bg-surface-secondary-dark items-center justify-center overflow-hidden">                
                 <TouchableOpacity
                     onPress={() => {
@@ -39,7 +41,7 @@ const ExerciseCardGrid = ({ exercise }: ExerciseCardProps) => {
                 </View>
             </View>
             <View className="flex-1 justify-start gap-3 p-4">
-                <Headline numberOfLines={2} className="text-[16px] text-content-primary-light dark:text-content-primary-dark">
+                <Headline numberOfLines={2} className="!text-[15px] text-content-primary-light dark:text-content-primary-dark">
                     {exercise.name}
                 </Headline>
                 <View className="flex flex-row flex-wrap gap-x-1 gap-y-2">
@@ -54,7 +56,7 @@ const ExerciseCardGrid = ({ exercise }: ExerciseCardProps) => {
 
 const ExerciseCardList = ({ exercise }: ExerciseCardProps) => {
     return (
-        <Pressable className="flex-1 flex-row items-center gap-4 bg-surface-primary-light dark:bg-surface-primary-dark rounded-xl overflow-hidden">
+        <Pressable className="flex-1 flex-row items-center bg-surface-primary-light dark:bg-surface-primary-dark rounded-xl overflow-hidden mb-2">
             <View className="w-28 h-full items-center justify-center bg-surface-secondary-light dark:bg-surface-secondary-dark">
                 <View className="w-full items-center p-2 aspect-square">
                     <View className="w-full h-full overflow-hidden">
@@ -62,8 +64,8 @@ const ExerciseCardList = ({ exercise }: ExerciseCardProps) => {
                     </View>
                 </View>
             </View>
-            <View className="flex-1 py-4 flex gap-4">
-                <Headline numberOfLines={2} className="text-[16px] text-content-primary-light dark:text-content-primary-dark">
+            <View className="flex-1 p-4 flex gap-4">
+                <Headline numberOfLines={2} className="!text-[15px] text-content-primary-light dark:text-content-primary-dark">
                     {exercise.name}
                 </Headline>
                 <View className="flex flex-row flex-wrap gap-x-1 gap-y-2">
@@ -75,5 +77,3 @@ const ExerciseCardList = ({ exercise }: ExerciseCardProps) => {
         </Pressable>
     );
 };
-
-export default ExerciseCard;

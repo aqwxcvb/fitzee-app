@@ -4,7 +4,7 @@ import { useTranslation } from "@/i18n";
 import { FlashList, FlashListRef } from "@shopify/flash-list";
 import { useCallback, useMemo, useState } from "react";
 import { Animated as RNAnimated, TouchableOpacity, View } from "react-native";
-import ExerciseCard from "./components/exercise-card";
+import { ExerciseCard } from "./components/exercise-card";
 import { Exercise } from "./types/exercise";
 
 type AnimatedValue = number | RNAnimated.AnimatedAddition<number> | RNAnimated.AnimatedInterpolation<number>;
@@ -12,7 +12,7 @@ type DisplayMode = "grid" | "list";
 
 const EXERCISES: Exercise[] = [
     {
-        id: "1",
+        id: 1,
         name: "Squat à la barre",
         muscles: [
             {
@@ -40,7 +40,7 @@ const EXERCISES: Exercise[] = [
         icon: "🦵",
     },
     {
-        id: "2",
+        id: 2,
         name: "Développé couché sur banc incliné",
         muscles: [
             {
@@ -68,7 +68,7 @@ const EXERCISES: Exercise[] = [
         icon: "🏋️",
     },
     {
-        id: "3",
+        id: 3,
         name: "Extension triceps à la poulie",
         muscles: [
             {
@@ -89,7 +89,7 @@ const EXERCISES: Exercise[] = [
         icon: "🏋️",
     },
     {
-        id: "4",
+        id: 4,
         name: "Curl marteau aux haltères",
         muscles: [
             {
@@ -109,7 +109,7 @@ const EXERCISES: Exercise[] = [
         ]
     },
     {
-        id: "5",
+        id: 5,
         name: "Développé couché sur banc incliné",
         muscles: [
             {
@@ -126,17 +126,10 @@ const EXERCISES: Exercise[] = [
                 area: "upper",
                 perspective: "front",
             },
-            {
-                id: "3",
-                name: "Triceps",
-                type: "secondary",
-                area: "upper",
-                perspective: "back",
-            },
         ]
     },
     {
-        id: "6",
+        id: 6,
         name: "Développé couché sur banc incliné",
         muscles: [
             {
@@ -181,32 +174,33 @@ const ExerciseLibraryPanel: React.FC<ExerciseLibraryPanelProps> = ({
     const [displayMode, setDisplayMode] = useState<DisplayMode>("grid");
     const isGrid = displayMode === "grid";
 
-    const toggleDisplayMode = useCallback(() => setDisplayMode(mode => (mode === "grid" ? "list" : "grid")), []);
-
     const displayModeIcon = useMemo(() => {
         const iconClassName = "text-content-secondary-light dark:text-content-secondary-dark";
-        return isGrid ? <GridIcon size={18} className={iconClassName} /> : <ListIcon size={18} strokeWidth={2} className={iconClassName} />;
+
+        return isGrid ? <ListIcon size={22} className={iconClassName} /> : <GridIcon size={22} className={iconClassName} />;
     }, [isGrid]);
+
+    const toggleDisplayMode = useCallback(() => setDisplayMode(mode => (mode === "grid" ? "list" : "grid")), []);
+    const keyExtractor = useCallback((item: Exercise) => item.id.toString(), []);
 
     const renderItem = useCallback(({ item }: { item: Exercise }) => (
         <ExerciseCard exercise={item} displayMode={displayMode} />
     ), [displayMode]);
 
-    const keyExtractor = useCallback((item: Exercise) => item.id, []);
-
     const ListHeaderComponent = useCallback(() => (
         <View>
             <RNAnimated.View style={{ height: currentHeaderHeight }} />
-            <View className="flex-row items-center justify-between px-4">
-                <Caption className="my-4 text-content-secondary-light dark:text-content-secondary-dark">
+            <View className="flex-row items-center justify-between my-4">
+                <Caption className="text-content-secondary-light dark:text-content-secondary-dark">
                     {__("Tous les exercices")}
                 </Caption>
+
                 <TouchableOpacity onPress={toggleDisplayMode}>
                     {displayModeIcon}
                 </TouchableOpacity>
             </View>
         </View>
-    ), [__, currentHeaderHeight, displayModeIcon, toggleDisplayMode]);
+    ), [displayModeIcon, toggleDisplayMode]);
 
     const handleScroll = useMemo(() => 
         RNAnimated.event(
@@ -223,10 +217,7 @@ const ExerciseLibraryPanel: React.FC<ExerciseLibraryPanelProps> = ({
             keyExtractor={keyExtractor}
             numColumns={isGrid ? 2 : 1}
             key={displayMode}
-            estimatedItemSize={isGrid ? 150 : 80}
             showsVerticalScrollIndicator={false}
-            bounces={false}
-            overScrollMode="never"
             onScroll={handleScroll}
             scrollEventThrottle={16}
             ListHeaderComponent={ListHeaderComponent}
@@ -234,7 +225,6 @@ const ExerciseLibraryPanel: React.FC<ExerciseLibraryPanelProps> = ({
                 paddingHorizontal: 16,
                 paddingBottom: headerScrollDistance + 32,
             }}
-            ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
         />
     );
 };
