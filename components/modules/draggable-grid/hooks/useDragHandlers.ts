@@ -1,6 +1,6 @@
+import type { BaseItemType, Position } from "@/components/modules/draggable-grid/types";
 import { useCallback, useMemo, useRef } from "react";
 import { Animated, PanResponder, PanResponderGestureState } from "react-native";
-import type { BaseItemType, Position } from "react-native-draggable-grid/src/types";
 import {
     calculateNewOrders,
     calculateOrderByPosition,
@@ -129,6 +129,40 @@ export function useDragHandlers<T extends BaseItemType>({
                 return;
             }
 
+            // Vérifier si l'item actif est un groupe
+            const activeItem = itemsMap.current.get(activeKey);
+            const isActiveGroup = activeItem && 'type' in activeItem && activeItem.type === 'group';
+
+            // Vérifier si la cible est un groupe
+            const targetItem = itemsMap.current.get(targetKey);
+            const isTargetGroup = targetItem && 'type' in targetItem && targetItem.type === 'group';
+
+            // Empêcher la fusion de deux groupes ensemble
+            if (isActiveGroup && isTargetGroup) {
+                if (hoverTimerRef.current) {
+                    clearTimeout(hoverTimerRef.current);
+                    hoverTimerRef.current = null;
+                }
+                if (hoveredItemKeyRef.current) {
+                    hoveredItemKeyRef.current = undefined;
+                    setGroupedItemKey(undefined);
+                }
+                return;
+            }
+
+            // Empêcher la fusion d'un groupe avec un item non groupe
+            if (isActiveGroup && !isTargetGroup) {
+                if (hoverTimerRef.current) {
+                    clearTimeout(hoverTimerRef.current);
+                    hoverTimerRef.current = null;
+                }
+                if (hoveredItemKeyRef.current) {
+                    hoveredItemKeyRef.current = undefined;
+                    setGroupedItemKey(undefined);
+                }
+                return;
+            }
+
             const targetPos = getPositionByIndex(hoveredOrder);
             const activeOrder = orderMap.current.get(activeKey);
             const activeHeight = activeOrder !== undefined ? getHeightAtOrder(activeOrder) : blockHeight;
@@ -174,6 +208,7 @@ export function useDragHandlers<T extends BaseItemType>({
             getHeightAtOrder,
             getPositionByIndex,
             orderMap,
+            itemsMap,
             setGroupedItemKey,
             getSortedItems,
         ]
@@ -311,24 +346,70 @@ export function useDragHandlers<T extends BaseItemType>({
                     setActiveItemKey(undefined);
                     activeItemKeyRef.current = undefined;
                 } else if (shouldCreateGroup) {
-                    const targetOrder = orderMap.current.get(currentGroupedItemKey);
-                    const targetPos = targetOrder !== undefined ? getPositionByIndex(targetOrder) : getPositionByIndex(order);
+                    const draggedItem = itemsMap.current.get(key);
+                    const targetItem = itemsMap.current.get(currentGroupedItemKey);
 
-                    Animated.timing(anim, {
-                        toValue: targetPos,
-                        duration: ANIMATION_DURATION,
-                        useNativeDriver: false,
-                    }).start(() => {
-                        const draggedItem = itemsMap.current.get(key);
-                        const targetItem = itemsMap.current.get(currentGroupedItemKey);
+                    if (!draggedItem || !targetItem) {
+                        const finalPos = getPositionByIndex(order);
+                        Animated.timing(anim, {
+                            toValue: finalPos,
+                            duration: ANIMATION_DURATION,
+                            useNativeDriver: false,
+                        }).start(() => {
+                            const sorted = Array.from(itemsMap.current.values()).sort(
+                                (a, b) => orderMap.current.get(String(a.key))! - orderMap.current.get(String(b.key))!
+                            );
+                            onDragRelease?.(sorted);
+                            setInternalData(sorted);
 
-                        if (draggedItem && targetItem && onGroupCreate) {
-                            onGroupCreate([draggedItem, targetItem], targetItem);
-                        }
+                            setActiveItemKey(undefined);
+                            activeItemKeyRef.current = undefined;
+                        });
+                        return;
+                    }
 
-                        setActiveItemKey(undefined);
-                        activeItemKeyRef.current = undefined;
-                    });
+                    // Vérifier si l'item actif est un groupe
+                    const isActiveGroup = 'type' in draggedItem && draggedItem.type === 'group';
+
+                    // Vérifier si la cible est un groupe
+                    const isTargetGroup = 'type' in targetItem && targetItem.type === 'group';
+
+                    // Empêcher la fusion de deux groupes ensemble
+                    // Empêcher la fusion d'un groupe avec un item non groupe
+                    if (isActiveGroup) {
+                        // Annuler le groupement et simplement repositionner l'item
+                        const finalPos = getPositionByIndex(order);
+                        Animated.timing(anim, {
+                            toValue: finalPos,
+                            duration: ANIMATION_DURATION,
+                            useNativeDriver: false,
+                        }).start(() => {
+                            const sorted = Array.from(itemsMap.current.values()).sort(
+                                (a, b) => orderMap.current.get(String(a.key))! - orderMap.current.get(String(b.key))!
+                            );
+                            onDragRelease?.(sorted);
+                            setInternalData(sorted);
+
+                            setActiveItemKey(undefined);
+                            activeItemKeyRef.current = undefined;
+                        });
+                    } else {
+                        const targetOrder = orderMap.current.get(currentGroupedItemKey);
+                        const targetPos = targetOrder !== undefined ? getPositionByIndex(targetOrder) : getPositionByIndex(order);
+
+                        Animated.timing(anim, {
+                            toValue: targetPos,
+                            duration: ANIMATION_DURATION,
+                            useNativeDriver: false,
+                        }).start(() => {
+                            if (onGroupCreate) {
+                                onGroupCreate([draggedItem, targetItem], targetItem);
+                            }
+
+                            setActiveItemKey(undefined);
+                            activeItemKeyRef.current = undefined;
+                        });
+                    }
                 } else {
                     const finalPos = getPositionByIndex(order);
                     Animated.timing(anim, {

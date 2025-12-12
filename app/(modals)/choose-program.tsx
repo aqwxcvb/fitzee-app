@@ -8,7 +8,7 @@ const ChooseProgram = () => {
     const router = useRouter();
 
     const handleConfirm = () => {
-        router.dismissTo("/(stacks)/program-builder");
+        router.dismissTo("/program-builder");
     };
 
     const handleCancel = () => {

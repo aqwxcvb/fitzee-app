@@ -5,7 +5,7 @@ import { AutoScrollProvider, useAutoScroll } from "@/contexts";
 import { Monicon } from "@monicon/native";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
-import { Exercise } from "./exercise-library-panel";
+import type { Exercise } from "./exercise-library-panel copy";
 
 // Styles
 const styles = StyleSheet.create({
@@ -157,7 +157,19 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
     }, [handleDragEnd, setExercises, setIsDragging]);
 
     const handleItemDelete = useCallback((ex: Exercise) => {
-        setExercises(prev => prev.filter(e => e.key !== ex.key));
+        setExercises(prev => {
+            const index = prev.findIndex(e => e.key === ex.key);
+            if (index === -1) return prev;
+
+            const item = prev[index];
+            if (item.type === "group" && item.children && item.children.length > 0) {
+                const next = [...prev];
+                next.splice(index, 1, ...item.children);
+                return next;
+            }
+
+            return prev.filter(e => e.key !== ex.key);
+        });
     }, [setExercises]);
 
     const handleChildrenReorder = useCallback((groupKey: string, newChildren: Exercise[]) => {
@@ -179,7 +191,7 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
             if (!group.children) return prev;
             
             // Retirer l'item du groupe
-            const newChildren = group.children.filter(c => c.key !== item.key);
+            const newChildren = group.children.filter((c: Exercise) => c.key !== item.key);
             
             // Si le groupe n'a plus qu'un seul élément, le dissoudre
             if (newChildren.length <= 1) {
@@ -216,7 +228,7 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
             if (!group.children) return prev;
             
             // Retirer l'item du groupe
-            const newChildren = group.children.filter(c => c.key !== item.key);
+            const newChildren = group.children.filter((c: Exercise) => c.key !== item.key);
             
             // Si le groupe n'a plus qu'un seul élément, le dissoudre
             if (newChildren.length <= 1) {
@@ -244,17 +256,24 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
             // Trouver les clés des items à grouper
             const draggedItem = items.find(i => i.key !== targetItem.key);
             if (!draggedItem) return prev;
-            
-            // Vérifier si la cible est déjà un groupe
-            const isTargetGroup = targetItem.type === 'group';
-            
-            // Créer le nouveau groupe ou ajouter au groupe existant
+
+            const targetKey = targetItem.key;
+            const draggedKey = draggedItem.key;
+
+            const targetIndexPrev = prev.findIndex(e => e.key === targetKey);
+            const draggedIndexPrev = prev.findIndex(e => e.key === draggedKey);
+            if (targetIndexPrev === -1 || draggedIndexPrev === -1) return prev;
+
+            const actualTarget = prev[targetIndexPrev];
+            const isTargetGroup = actualTarget.type === "group" && !!actualTarget.children;
+
             let newGroup: Exercise;
-            if (isTargetGroup && targetItem.children) {
+            if (isTargetGroup) {
                 // Ajouter au groupe existant
+                const children = actualTarget.children ?? [];
                 newGroup = {
-                    ...targetItem,
-                    children: [...targetItem.children, draggedItem],
+                    ...actualTarget,
+                    children: [...children, draggedItem],
                 };
             } else {
                 // Créer un nouveau groupe
@@ -268,14 +287,22 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
                     children: [targetItem, draggedItem],
                 };
             }
-            
-            // Filtrer les items originaux et ajouter le groupe
-            const filtered = prev.filter(e => e.key !== draggedItem.key && e.key !== targetItem.key);
-            
-            // Insérer le groupe à la position de la cible
-            const targetIndex = prev.findIndex(e => e.key === targetItem.key);
-            filtered.splice(targetIndex, 0, newGroup);
-            
+
+            // On retire toujours (1) l'item dragué et (2) la cible (pour pouvoir la remplacer par newGroup)
+            const filtered = prev.filter(e => e.key !== draggedKey && e.key !== targetKey);
+
+            // Position d'insertion :
+            // - si on drop dans un groupe existant, le groupe doit remonter à la position de l'item dragué
+            //   quand l'item dragué était au-dessus du groupe.
+            // - sinon, on insère à la position de la cible.
+            const desiredIndexPrev = isTargetGroup
+                ? Math.min(draggedIndexPrev, targetIndexPrev)
+                : targetIndexPrev;
+
+            const removedBeforeDesired = [draggedIndexPrev, targetIndexPrev].filter((i) => i < desiredIndexPrev).length;
+            const insertIndex = desiredIndexPrev - removedBeforeDesired;
+
+            filtered.splice(insertIndex, 0, newGroup);
             return filtered;
         });
     }, [setExercises]);
