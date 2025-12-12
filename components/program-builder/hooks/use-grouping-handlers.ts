@@ -2,176 +2,121 @@ import { DraggableGridProps } from "@/components/modules/draggable-grid";
 import { useCallback } from "react";
 import { WorkoutBuilderItem } from "../types";
 
-type UseGroupingHandlersOptions = {
+type Props = {
     setItems: React.Dispatch<React.SetStateAction<WorkoutBuilderItem[]>>;
 };
 
-type UseGroupingHandlersReturn = {
-    onGroupCreate: NonNullable<DraggableGridProps<WorkoutBuilderItem>["onGroupCreate"]>;
-    onChildDragOutside: (groupKey: WorkoutBuilderItem["key"], child: WorkoutBuilderItem) => void;
-};
-
-type Location =
-    | { kind: "root"; index: number }
-    | { kind: "child"; groupIndex: number; childIndex: number };
-
-function isSameKey(a: WorkoutBuilderItem["key"], b: WorkoutBuilderItem["key"]) {
-    return String(a) === String(b);
-}
-
-function findLocation(items: WorkoutBuilderItem[], key: WorkoutBuilderItem["key"]): Location | null {
-    const k = String(key);
-
-    for (let i = 0; i < items.length; i += 1) {
-        const it = items[i];
-        if (String(it.key) === k) return { kind: "root", index: i };
-
-        if (it.isGroup && Array.isArray(it.children)) {
-            for (let j = 0; j < it.children.length; j += 1) {
-                if (String(it.children[j].key) === k) {
-                    return { kind: "child", groupIndex: i, childIndex: j };
-                }
+// Trouve un item par sa clé (à la racine ou dans un groupe)
+function findItem(items: WorkoutBuilderItem[], key: string) {
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (String(item.key) === key) {
+            return { item, rootIndex: i, childIndex: -1 };
+        }
+        if (item.isGroup && item.children) {
+            const childIdx = item.children.findIndex(c => String(c.key) === key);
+            if (childIdx !== -1) {
+                return { item: item.children[childIdx], rootIndex: i, childIndex: childIdx };
             }
         }
     }
-
     return null;
 }
 
-function removeItemFromAnywhere(
-    items: WorkoutBuilderItem[],
-    key: WorkoutBuilderItem["key"]
-): { next: WorkoutBuilderItem[]; removed?: WorkoutBuilderItem } {
-    const loc = findLocation(items, key);
-    if (!loc) return { next: items };
+// Supprime un item et gère la dissolution des groupes à 1 élément
+function removeItem(items: WorkoutBuilderItem[], key: string): WorkoutBuilderItem[] {
+    const found = findItem(items, key);
+    if (!found) return items;
 
-    if (loc.kind === "root") {
-        const removed = items[loc.index];
-        const next = items.filter((_, idx) => idx !== loc.index);
-        return { next, removed };
+    // Item à la racine
+    if (found.childIndex === -1) {
+        return items.filter((_, i) => i !== found.rootIndex);
     }
 
-    const group = items[loc.groupIndex];
-    if (!group.isGroup) return { next: items };
+    // Item dans un groupe
+    const group = items[found.rootIndex];
+    const newChildren = group.children!.filter((_, i) => i !== found.childIndex);
 
-    const children = group.children ?? [];
-    const removed = children[loc.childIndex];
-
-    const nextChildren = children.filter((_, idx) => idx !== loc.childIndex);
-    const next = [...items];
-
-    if (nextChildren.length <= 1) {
-        const replacement = nextChildren[0];
-
-        if (replacement) {
-            next.splice(loc.groupIndex, 1, replacement);
-        } else {
-            next.splice(loc.groupIndex, 1);
-        }
-
-        return { next, removed };
+    // Groupe dissous si ≤ 1 enfant
+    if (newChildren.length <= 1) {
+        return items.map((item, i) => 
+            i === found.rootIndex ? (newChildren[0] ?? null) : item
+        ).filter(Boolean) as WorkoutBuilderItem[];
     }
 
-    next[loc.groupIndex] = { ...group, children: nextChildren };
-    return { next, removed };
+    return items.map((item, i) => 
+        i === found.rootIndex ? { ...item, children: newChildren } : item
+    );
 }
 
-function insertAfterIndex(items: WorkoutBuilderItem[], index: number, item: WorkoutBuilderItem) {
-    const next = [...items];
-    next.splice(index + 1, 0, item);
-    return next;
+// Crée un nouveau groupe
+function createGroup(children: WorkoutBuilderItem[]): WorkoutBuilderItem {
+    return {
+        key: String(Date.now()),
+        name: "Superset",
+        backgroundColor: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0")}`,
+        isGroup: true,
+        children,
+    };
 }
 
-export function useGroupingHandlers({ setItems }: UseGroupingHandlersOptions): UseGroupingHandlersReturn {
+export function useGroupingHandlers({ setItems }: Props) {
+    // Quand on drop un item sur un autre pour créer/rejoindre un groupe
     const onGroupCreate = useCallback<NonNullable<DraggableGridProps<WorkoutBuilderItem>["onGroupCreate"]>>(
         (sourceItems, targetItem) => {
-            setItems((prev) => {
-                const targetKey = targetItem.key;
-                const draggedItem = sourceItems.find((it) => !isSameKey(it.key, targetKey));
+            setItems(prev => {
+                const draggedItem = sourceItems.find(it => String(it.key) !== String(targetItem.key));
                 if (!draggedItem) return prev;
 
-                const draggedKey = draggedItem.key;
-                if (isSameKey(draggedKey, targetKey)) return prev;
+                const targetFound = findItem(prev, String(targetItem.key));
+                if (!targetFound || targetFound.childIndex !== -1) return prev;
 
-                const removedDragged = removeItemFromAnywhere(prev, draggedKey);
-                if (!removedDragged.removed) return prev;
+                // Retirer l'item glissé
+                let next = removeItem(prev, String(draggedItem.key));
+                const draggedData = findItem(prev, String(draggedItem.key))?.item ?? draggedItem;
 
-                const withoutDragged = removedDragged.next;
+                // Recalculer la position de la cible après suppression
+                const newTargetFound = findItem(next, String(targetItem.key));
+                if (!newTargetFound) return prev;
 
-                const targetLoc = findLocation(withoutDragged, targetKey);
-                if (!targetLoc) return prev;
+                const target = next[newTargetFound.rootIndex];
 
-                if (targetLoc.kind !== "root") return prev;
-
-                const actualTarget = withoutDragged[targetLoc.index];
-
-                if (actualTarget.isGroup) {
-                    const children = actualTarget.children ?? [];
-                    const nextGroup: WorkoutBuilderItem = {
-                        ...actualTarget,
-                        children: [...children, removedDragged.removed],
+                // Si la cible est déjà un groupe, ajouter l'item
+                if (target.isGroup) {
+                    next[newTargetFound.rootIndex] = {
+                        ...target,
+                        children: [...(target.children ?? []), draggedData],
                     };
-
-                    const next = [...withoutDragged];
-                    next[targetLoc.index] = nextGroup;
                     return next;
                 }
 
-                const removedTarget = removeItemFromAnywhere(withoutDragged, targetKey);
-                if (!removedTarget.removed) return prev;
+                // Sinon, créer un nouveau groupe
+                next = removeItem(next, String(targetItem.key));
+                const group = createGroup([target, draggedData]);
+                next.splice(Math.min(newTargetFound.rootIndex, next.length), 0, group);
 
-                const desiredIndex = targetLoc.index;
-                const base = removedTarget.next;
-
-                const group: WorkoutBuilderItem = {
-                    key: `group-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-                    name: "Superset",
-                    backgroundColor: `#${Math.floor(Math.random() * 16777215)
-                        .toString(16)
-                        .padStart(6, "0")}`,
-                    isGroup: true,
-                    children: [removedTarget.removed, removedDragged.removed],
-                };
-
-                const next = [...base];
-
-                const removedBefore = (removedTarget.next.length < withoutDragged.length ? 1 : 0);
-                const insertIndex = Math.max(0, desiredIndex - removedBefore);
-
-                next.splice(insertIndex, 0, group);
                 return next;
             });
         },
         [setItems]
     );
 
+    // Quand on sort un item d'un groupe
     const onChildDragOutside = useCallback(
         (groupKey: WorkoutBuilderItem["key"], child: WorkoutBuilderItem) => {
-            setItems((prev) => {
-                const groupIndex = prev.findIndex((it) => isSameKey(it.key, groupKey));
-                if (groupIndex === -1) return prev;
+            setItems(prev => {
+                const groupIndex = prev.findIndex(it => String(it.key) === String(groupKey));
+                if (groupIndex === -1 || !prev[groupIndex].isGroup) return prev;
 
-                const group = prev[groupIndex];
-                if (!group.isGroup) return prev;
-
-                const removed = removeItemFromAnywhere(prev, child.key);
-                if (!removed.removed) return prev;
-
-                const afterRemovalLoc = findLocation(removed.next, groupKey);
-
-                if (afterRemovalLoc && afterRemovalLoc.kind === "root") {
-                    return insertAfterIndex(removed.next, afterRemovalLoc.index, removed.removed);
-                }
-
-                const safeIndex = Math.min(groupIndex, removed.next.length - 1);
-                return insertAfterIndex(removed.next, Math.max(0, safeIndex), removed.removed);
+                const next = removeItem(prev, String(child.key));
+                const insertIdx = Math.min(groupIndex + 1, next.length);
+                
+                next.splice(insertIdx, 0, child);
+                return next;
             });
         },
         [setItems]
     );
 
-    return {
-        onGroupCreate,
-        onChildDragOutside,
-    };
+    return { onGroupCreate, onChildDragOutside };
 }

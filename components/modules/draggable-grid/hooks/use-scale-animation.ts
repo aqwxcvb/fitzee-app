@@ -13,7 +13,7 @@ interface UseScaleAnimationReturn {
 
 export function useScaleAnimation({
     isScaled,
-    scaledValue = 1.15,
+    scaledValue = 1.05,
     normalValue = 1,
 }: UseScaleAnimationOptions): UseScaleAnimationReturn {
     const scaleValue = useRef(new Animated.Value(normalValue)).current;

@@ -27,82 +27,99 @@ import type {
 import { calculateTotalGridHeight, isPointInsideItem } from "../utils/grid-calculations";
 import { Block } from "./block";
 
-const DEFAULT_DELAY_LONG_PRESS = 200;
-const DEFAULT_FALLBACK_HEIGHT = 100;
+const DEFAULT_LONG_PRESS_DELAY = 200;
+const DEFAULT_ITEM_HEIGHT = 100;
+const ANIMATION_DURATION = 200;
+const MEASUREMENT_REVEAL_DELAY = ANIMATION_DURATION + 20;
 
-type ItemMeasuredLayout = {
+interface ItemLayout {
     width: number;
     height: number;
-};
+}
 
 function DraggableGridInner<T extends BaseItemType>(
-    {
+    props: DraggableGridProps<T>,
+    ref: React.Ref<DraggableGridRef>
+) {
+    const {
         data,
         style,
+        numColumns,
+        itemHeight,
+        getItemHeight,
         renderItem,
         renderDeleteButton,
+        dragStartAnimation,
+        enableJiggle = true,
+        enableGrouping = false,
+        delayLongPress = DEFAULT_LONG_PRESS_DELAY,
         onItemPress,
+        onItemDelete,
         onDragStart,
         onDragging,
         onDragRelease,
         onDragOutside,
-        onItemDelete,
         onEditModeChange,
         onGroupCreate,
-        numColumns,
-        itemHeight,
-        getItemHeight,
-        dragStartAnimation,
-        enableJiggle = true,
-        enableGrouping = false,
-        delayLongPress = DEFAULT_DELAY_LONG_PRESS,
-    }: DraggableGridProps<T>,
-    ref: React.Ref<DraggableGridRef>
-) {
+    } = props;
+
     const [containerLayout, setContainerLayout] = useState<ContainerLayout | null>(null);
     const [blockWidth, setBlockWidth] = useState(0);
-    const [blockHeight, setBlockHeight] = useState(
-        typeof itemHeight === "number" && itemHeight > 0 ? itemHeight : DEFAULT_FALLBACK_HEIGHT
-    );
+    const [blockHeight, setBlockHeight] = useState(itemHeight ?? DEFAULT_ITEM_HEIGHT);
+    const [measuredLayouts, setMeasuredLayouts] = useState<Record<string, ItemLayout>>({});
+    const [itemsPendingMeasurement, setItemsPendingMeasurement] = useState<Set<string>>(new Set());
 
-    const [itemLayouts, setItemLayouts] = useState<Record<string, ItemMeasuredLayout>>({});
-
-    // Track items that are pending their first measurement (to hide them until measured)
-    const [pendingMeasurementKeys, setPendingMeasurementKeys] = useState<Set<string>>(new Set());
-    const pendingMeasurementKeysRef = useRef<Set<string>>(new Set());
-    const previousKeysRef = useRef<Set<string>>(new Set());
-    
-    // Keep ref in sync with state
-    pendingMeasurementKeysRef.current = pendingMeasurementKeys;
+    const [activeItemKey, setActiveItemKey] = useState<string | undefined>();
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [groupedItemKey, setGroupedItemKey] = useState<string | undefined>();
 
     const containerRef = useRef<View | null>(null);
-    const itemNativeRefs = useRef<Map<string, View | null>>(new Map());
-
-    const [activeItemKey, setActiveItemKey] = useState<string | undefined>(undefined);
-    const [isEditMode, setIsEditMode] = useState(false);
-    const [groupedItemKey, setGroupedItemKeyState] = useState<string | undefined>(undefined);
-
+    const itemViewRefs = useRef<Map<string, View | null>>(new Map());
     const groupedItemKeyRef = useRef<string | undefined>(undefined);
+    const itemsPendingMeasurementRef = useRef<Set<string>>(new Set());
+    const previousItemKeysRef = useRef<Set<string>>(new Set());
 
-    const setGroupedItemKey = useCallback((value: string | undefined) => {
-        groupedItemKeyRef.current = value;
-        setGroupedItemKeyState(value);
-    }, []);
+    groupedItemKeyRef.current = groupedItemKey;
+    itemsPendingMeasurementRef.current = itemsPendingMeasurement;
+
+    const safeBlockHeight = blockHeight > 0 ? blockHeight : DEFAULT_ITEM_HEIGHT;
 
     const getResolvedItemHeight = useCallback(
-        (item: T) => {
+        (item: T): number => {
             const key = String(item.key);
-            const measured = itemLayouts[key]?.height;
-            if (typeof measured === "number" && measured > 0) return measured;
+            const measuredHeight = measuredLayouts[key]?.height;
 
-            const estimated = getItemHeight?.(item);
-            if (typeof estimated === "number" && estimated > 0) return estimated;
+            if (measuredHeight && measuredHeight > 0) {
+                return measuredHeight;
+            }
 
-            if (typeof itemHeight === "number" && itemHeight > 0) return itemHeight;
+            if (getItemHeight) {
+                const customHeight = getItemHeight(item);
+                if (customHeight > 0) {
+                    return customHeight;
+                }
+            }
 
-            return blockHeight > 0 ? blockHeight : DEFAULT_FALLBACK_HEIGHT;
+            if (itemHeight && itemHeight > 0) {
+                return itemHeight;
+            }
+
+            return safeBlockHeight;
         },
-        [itemLayouts, getItemHeight, itemHeight, blockHeight]
+        [measuredLayouts, getItemHeight, itemHeight, safeBlockHeight]
+    );
+
+    const updateGroupedItemKey = useCallback((value: string | undefined) => {
+        groupedItemKeyRef.current = value;
+        setGroupedItemKey(value);
+    }, []);
+
+    const updateEditMode = useCallback(
+        (value: boolean) => {
+            setIsEditMode(value);
+            onEditModeChange?.(value);
+        },
+        [onEditModeChange]
     );
 
     const {
@@ -113,13 +130,12 @@ function DraggableGridInner<T extends BaseItemType>(
         itemAnims,
         getPositionByIndex,
         getKeyByOrder,
-        getHeightForItem,
         getHeightByKey,
     } = useGridState({
         data,
         numColumns,
         blockWidth,
-        blockHeight: blockHeight > 0 ? blockHeight : DEFAULT_FALLBACK_HEIGHT,
+        blockHeight: safeBlockHeight,
         containerLayout,
         getItemHeight: getResolvedItemHeight,
     });
@@ -127,7 +143,7 @@ function DraggableGridInner<T extends BaseItemType>(
     const { panResponder, activeItemKeyRef, applyScrollOffset } = useDragHandlers({
         numColumns,
         blockWidth,
-        blockHeight: blockHeight > 0 ? blockHeight : DEFAULT_FALLBACK_HEIGHT,
+        blockHeight: safeBlockHeight,
         enableGrouping,
         internalData,
         itemsMap,
@@ -135,14 +151,13 @@ function DraggableGridInner<T extends BaseItemType>(
         itemAnims,
         getPositionByIndex,
         getKeyByOrder,
-        getHeightForItem,
         getHeightByKey,
         getItemHeight: getResolvedItemHeight,
         setInternalData,
         activeItemKey,
         setActiveItemKey,
         groupedItemKey: groupedItemKeyRef.current,
-        setGroupedItemKey,
+        setGroupedItemKey: updateGroupedItemKey,
         onDragStart,
         onDragging,
         onDragRelease,
@@ -151,9 +166,8 @@ function DraggableGridInner<T extends BaseItemType>(
     });
 
     const exitEditMode = useCallback(() => {
-        setIsEditMode(false);
-        onEditModeChange?.(false);
-    }, [onEditModeChange]);
+        updateEditMode(false);
+    }, [updateEditMode]);
 
     useImperativeHandle(
         ref,
@@ -164,252 +178,303 @@ function DraggableGridInner<T extends BaseItemType>(
         [exitEditMode, applyScrollOffset]
     );
 
-    const handleLongPress = useCallback(
+    const handleItemLongPress = useCallback(
         (item: T) => {
-            if (item.disabledDrag) return;
+            if (item.disabledDrag) {
+                return;
+            }
 
-            setIsEditMode(true);
-            onEditModeChange?.(true);
-
+            updateEditMode(true);
             setActiveItemKey(String(item.key));
             activeItemKeyRef.current = String(item.key);
         },
-        [onEditModeChange, activeItemKeyRef]
+        [updateEditMode, activeItemKeyRef]
     );
 
-    const handlePress = useCallback(
+    const handleItemPress = useCallback(
         (item: T) => {
             if (isEditMode) {
-                setIsEditMode(false);
-                onEditModeChange?.(false);
-            } else {
-                onItemPress?.(item);
+                updateEditMode(false);
+                return;
             }
+
+            onItemPress?.(item);
         },
-        [isEditMode, onEditModeChange, onItemPress]
+        [isEditMode, updateEditMode, onItemPress]
     );
-
-    const onLayout = useCallback(
-        (event: LayoutChangeEvent) => {
-            const { width, height } = event.nativeEvent.layout;
-
-            setContainerLayout({ width, height });
-
-            const bWidth = width / numColumns;
-            setBlockWidth(bWidth);
-
-            const nextHeight =
-                typeof itemHeight === "number" && itemHeight > 0
-                    ? itemHeight
-                    : blockHeight > 0
-                      ? blockHeight
-                      : DEFAULT_FALLBACK_HEIGHT;
-
-            setBlockHeight(nextHeight);
-        },
-        [numColumns, itemHeight, blockHeight]
-    );
-
-    const measureItem = useCallback((key: string) => {
-        const containerNode = containerRef.current;
-        const itemNode = itemNativeRefs.current.get(key) || null;
-
-        const containerHandle = containerNode ? findNodeHandle(containerNode) : null;
-        const itemHandle = itemNode ? findNodeHandle(itemNode) : null;
-
-        if (!containerHandle || !itemHandle) return;
-
-        UIManager.measureLayout(
-            itemHandle,
-            containerHandle,
-            () => {},
-            (_x: number, _y: number, width: number, height: number) => {
-                if (width <= 0 || height <= 0) return;
-                
-                const wasPending = pendingMeasurementKeysRef.current.has(key);
-                
-                setItemLayouts((prev) => {
-                    const current = prev[key];
-                    if (current && current.width === width && current.height === height) return prev;
-                    return { ...prev, [key]: { width, height } };
-                });
-                
-                // Remove from pending after a short delay to let position animations complete
-                // This prevents the item from appearing while other items are still moving
-                if (wasPending) {
-                    setTimeout(() => {
-                        setPendingMeasurementKeys((prev) => {
-                            if (!prev.has(key)) return prev;
-                            const next = new Set(prev);
-                            next.delete(key);
-                            return next;
-                        });
-                    }, 220); // Slightly longer than animation duration (200ms)
-                }
-            }
-        );
-    }, []);
-
-    const remeasureAll = useCallback(() => {
-        requestAnimationFrame(() => {
-            setTimeout(() => {
-                internalData.forEach((item) => measureItem(String(item.key)));
-            }, 0);
-        });
-    }, [internalData, measureItem]);
-
-    // Detect newly added items and mark them as pending measurement
-    useEffect(() => {
-        const currentKeys = new Set(data.map((item) => String(item.key)));
-        const prevKeys = previousKeysRef.current;
-
-        const newKeys: string[] = [];
-        currentKeys.forEach((key) => {
-            if (!prevKeys.has(key)) {
-                newKeys.push(key);
-            }
-        });
-
-        if (newKeys.length > 0) {
-            setPendingMeasurementKeys((prev) => {
-                const next = new Set(prev);
-                newKeys.forEach((k) => next.add(k));
-                return next;
-            });
-        }
-
-        previousKeysRef.current = currentKeys;
-    }, [data]);
-
-    useEffect(() => {
-        if (!containerLayout) return;
-        remeasureAll();
-    }, [containerLayout, internalData.length, isEditMode, remeasureAll]);
-
-    const totalGridHeight = useMemo(() => {
-        const baseHeight = blockHeight > 0 ? blockHeight : DEFAULT_FALLBACK_HEIGHT;
-        return calculateTotalGridHeight(internalData, numColumns, baseHeight, getResolvedItemHeight);
-    }, [internalData, numColumns, blockHeight, getResolvedItemHeight]);
 
     const handleBackgroundPress = useCallback(
         (event: any) => {
-            if (!isEditMode) return;
+            if (!isEditMode) {
+                return;
+            }
 
             const { locationX, locationY } = event.nativeEvent;
 
-            const baseHeight = blockHeight > 0 ? blockHeight : DEFAULT_FALLBACK_HEIGHT;
-
-            const isInside = isPointInsideItem(
+            const isTouchInsideItem = isPointInsideItem(
                 locationX,
                 locationY,
                 internalData,
                 orderMap.current,
                 numColumns,
                 blockWidth,
-                baseHeight,
+                safeBlockHeight,
                 getResolvedItemHeight
             );
 
-            if (!isInside) {
-                setIsEditMode(false);
-                onEditModeChange?.(false);
+            if (!isTouchInsideItem) {
+                updateEditMode(false);
             }
         },
-        [
-            isEditMode,
-            internalData,
-            orderMap,
-            numColumns,
-            blockWidth,
-            blockHeight,
-            getResolvedItemHeight,
-            onEditModeChange,
-        ]
+        [isEditMode, internalData, orderMap, numColumns, blockWidth, safeBlockHeight, getResolvedItemHeight, updateEditMode]
     );
 
-    const sortedItems = useMemo(() => {
+    const handleContainerLayout = useCallback(
+        (event: LayoutChangeEvent) => {
+            const { width, height } = event.nativeEvent.layout;
+
+            setContainerLayout({ width, height });
+            setBlockWidth(width / numColumns);
+
+            if (itemHeight && itemHeight > 0) {
+                setBlockHeight(itemHeight);
+            }
+        },
+        [numColumns, itemHeight]
+    );
+
+    const measureItem = useCallback((key: string) => {
+        const container = containerRef.current;
+        const itemView = itemViewRefs.current.get(key);
+
+        const containerHandle = container ? findNodeHandle(container) : null;
+        const itemHandle = itemView ? findNodeHandle(itemView) : null;
+
+        if (!containerHandle || !itemHandle) {
+            return;
+        }
+
+        UIManager.measureLayout(
+            itemHandle,
+            containerHandle,
+            () => {},
+            (_x, _y, width, height) => {
+                if (width <= 0 || height <= 0) {
+                    return;
+                }
+
+                setMeasuredLayouts((prev) => {
+                    const existing = prev[key];
+                    const isSameSize = existing?.width === width && existing?.height === height;
+
+                    if (isSameSize) {
+                        return prev;
+                    }
+
+                    return {
+                        ...prev,
+                        [key]: { width, height },
+                    };
+                });
+
+                const wasPendingMeasurement = itemsPendingMeasurementRef.current.has(key);
+
+                if (wasPendingMeasurement) {
+                    setTimeout(() => {
+                        setItemsPendingMeasurement((prev) => {
+                            if (!prev.has(key)) {
+                                return prev;
+                            }
+
+                            const next = new Set(prev);
+                            next.delete(key);
+                            return next;
+                        });
+                    }, MEASUREMENT_REVEAL_DELAY);
+                }
+            }
+        );
+    }, []);
+
+    const remeasureAllItems = useCallback(() => {
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                internalData.forEach((item) => {
+                    measureItem(String(item.key));
+                });
+            }, 0);
+        });
+    }, [internalData, measureItem]);
+
+    useEffect(() => {
+        const currentKeys = new Set(data.map((item) => String(item.key)));
+        const previousKeys = previousItemKeysRef.current;
+
+        const newlyAddedKeys: string[] = [];
+
+        currentKeys.forEach((key) => {
+            if (!previousKeys.has(key)) {
+                newlyAddedKeys.push(key);
+            }
+        });
+
+        if (newlyAddedKeys.length > 0) {
+            setItemsPendingMeasurement((prev) => {
+                const next = new Set(prev);
+                newlyAddedKeys.forEach((key) => next.add(key));
+                return next;
+            });
+        }
+
+        previousItemKeysRef.current = currentKeys;
+    }, [data]);
+
+    useEffect(() => {
+        if (!containerLayout) {
+            return;
+        }
+
+        remeasureAllItems();
+    }, [containerLayout, internalData.length, isEditMode, remeasureAllItems]);
+
+    const totalGridHeight = useMemo(() => {
+        return calculateTotalGridHeight(
+            internalData,
+            numColumns,
+            safeBlockHeight,
+            getResolvedItemHeight
+        );
+    }, [internalData, numColumns, safeBlockHeight, getResolvedItemHeight]);
+
+    const itemsSortedByZIndex = useMemo(() => {
         return [...internalData].sort((a, b) => {
-            if (String(a.key) === activeItemKey) return 1;
-            if (String(b.key) === activeItemKey) return -1;
+            const aKey = String(a.key);
+            const bKey = String(b.key);
+
+            if (aKey === activeItemKey) return 1;
+            if (bKey === activeItemKey) return -1;
+
             return 0;
         });
     }, [internalData, activeItemKey]);
 
-    const baseHeight = blockHeight > 0 ? blockHeight : DEFAULT_FALLBACK_HEIGHT;
+    const getOrCreateAnimation = useCallback(
+        (item: T): Animated.ValueXY => {
+            const key = String(item.key);
+            const existingAnim = itemAnims.current.get(key);
+
+            if (existingAnim) {
+                return existingAnim;
+            }
+
+            const index = internalData.indexOf(item);
+            const position = getPositionByIndex(index);
+            const newAnim = new Animated.ValueXY(position);
+
+            itemAnims.current.set(key, newAnim);
+
+            return newAnim;
+        },
+        [internalData, itemAnims, getPositionByIndex]
+    );
+
+    const renderGridItem = useCallback(
+        (item: T) => {
+            const key = String(item.key);
+            const isActive = activeItemKey === key;
+            const isGrouped = enableGrouping && groupedItemKeyRef.current === key;
+            const isPendingMeasurement = itemsPendingMeasurement.has(key);
+
+            const measured = measuredLayouts[key];
+            const width = measured?.width ?? blockWidth;
+            const height = measured?.height ?? getResolvedItemHeight(item);
+
+            const animation = getOrCreateAnimation(item);
+
+            const canJiggle = enableJiggle && !item.disabledDrag;
+            const canDelete = !!renderDeleteButton && !item.disabledDrag;
+
+            const blockStyle = {
+                position: "absolute" as const,
+                top: 0,
+                left: 0,
+                width,
+                height,
+                zIndex: isActive ? 999 : 1,
+                opacity: isPendingMeasurement ? 0 : 1,
+                transform: [
+                    { translateX: animation.x },
+                    { translateY: animation.y },
+                ],
+            };
+
+            const dragAnimation = isActive && dragStartAnimation
+                ? dragStartAnimation
+                : undefined;
+
+            const deleteButtonRenderer = renderDeleteButton
+                ? () => renderDeleteButton(item, () => onItemDelete?.(item))
+                : undefined;
+
+            return (
+                <Block
+                    key={key}
+                    style={blockStyle}
+                    delayLongPress={delayLongPress}
+                    dragStartAnimationStyle={dragAnimation}
+                    isEditMode={isEditMode}
+                    isGrouped={isGrouped}
+                    enableJiggle={canJiggle}
+                    showDeleteButton={canDelete}
+                    renderDeleteButton={deleteButtonRenderer}
+                    onPress={() => handleItemPress(item)}
+                    onLongPress={() => handleItemLongPress(item)}
+                >
+                    <View
+                        collapsable={false}
+                        style={{ width: "100%" }}
+                        ref={(viewRef) => { itemViewRefs.current.set(key, viewRef); }}
+                        onLayout={() => measureItem(key)}
+                    >
+                        {renderItem(item, orderMap.current.get(key) ?? 0)}
+                    </View>
+                </Block>
+            );
+        },
+        [
+            activeItemKey,
+            enableGrouping,
+            itemsPendingMeasurement,
+            measuredLayouts,
+            blockWidth,
+            getResolvedItemHeight,
+            getOrCreateAnimation,
+            enableJiggle,
+            renderDeleteButton,
+            dragStartAnimation,
+            isEditMode,
+            delayLongPress,
+            handleItemPress,
+            handleItemLongPress,
+            measureItem,
+            renderItem,
+            orderMap,
+            onItemDelete,
+        ]
+    );
 
     return (
         <Pressable
-            onPress={handleBackgroundPress}
             style={[style, styles.container, { height: totalGridHeight }]}
+            onPress={handleBackgroundPress}
         >
             <View
                 ref={containerRef}
                 style={[styles.innerContainer, { height: totalGridHeight }]}
-                onLayout={onLayout}
+                onLayout={handleContainerLayout}
                 {...panResponder.panHandlers}
             >
-                {sortedItems.map((item) => {
-                    const key = String(item.key);
-                    const isActive = activeItemKey === key;
-
-                    const measured = itemLayouts[key];
-                    const currentWidth = measured?.width ?? blockWidth;
-                    const currentHeight = measured?.height ?? getResolvedItemHeight(item) ?? baseHeight;
-
-                    let anim = itemAnims.current.get(key);
-                    if (!anim) {
-                        const index = internalData.indexOf(item);
-                        const pos = getPositionByIndex(index);
-                        anim = new Animated.ValueXY(pos);
-                        itemAnims.current.set(key, anim);
-                    }
-
-                    const shouldEnableJiggle = enableJiggle && !item.disabledDrag;
-                    const showDeleteButton = !!renderDeleteButton && !item.disabledDrag;
-                    const isGrouped = enableGrouping && groupedItemKeyRef.current === key;
-                    const isPendingMeasurement = pendingMeasurementKeys.has(key);
-
-                    return (
-                        <Block
-                            key={key}
-                            onPress={() => handlePress(item)}
-                            onLongPress={() => handleLongPress(item)}
-                            delayLongPress={delayLongPress}
-                            style={{
-                                position: "absolute",
-                                top: 0,
-                                left: 0,
-                                width: currentWidth,
-                                height: currentHeight,
-                                zIndex: isActive ? 999 : 1,
-                                transform: [{ translateX: anim.x }, { translateY: anim.y }],
-                                // Hide items until they are measured to prevent flash
-                                opacity: isPendingMeasurement ? 0 : 1,
-                            }}
-                            dragStartAnimationStyle={isActive && dragStartAnimation ? dragStartAnimation : undefined}
-                            isEditMode={isEditMode}
-                            enableJiggle={shouldEnableJiggle}
-                            showDeleteButton={showDeleteButton}
-                            renderDeleteButton={
-                                renderDeleteButton
-                                    ? () => renderDeleteButton(item, () => onItemDelete?.(item))
-                                    : undefined
-                            }
-                            isGrouped={isGrouped}
-                        >
-                            <View
-                                collapsable={false}
-                                ref={(r) => {
-                                    itemNativeRefs.current.set(key, r);
-                                }}
-                                onLayout={() => measureItem(key)}
-                                style={{ width: "100%" }}
-                            >
-                                {renderItem(item, orderMap.current.get(key) || 0)}
-                            </View>
-                        </Block>
-                    );
-                })}
+                {itemsSortedByZIndex.map(renderGridItem)}
             </View>
         </Pressable>
     );

@@ -1,4 +1,3 @@
-// useGridState.ts
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
 import type { BaseItemType, ContainerLayout, Position } from "../types";
@@ -21,9 +20,10 @@ interface UseGridStateReturn<T extends BaseItemType> {
     itemAnims: React.MutableRefObject<Map<string, Animated.ValueXY>>;
     getPositionByIndex: (index: number, orderMapOverride?: Map<string, number>) => Position;
     getKeyByOrder: (order: number) => string | undefined;
-    getHeightForItem: (item: T | undefined) => number;
     getHeightByKey: (key: string) => number;
 }
+
+const ANIMATION_DURATION = 200;
 
 export function useGridState<T extends BaseItemType>({
     data,
@@ -42,27 +42,13 @@ export function useGridState<T extends BaseItemType>({
     const isDraggingRef = useRef(false);
     const activeItemKeyRef = useRef<string | undefined>(undefined);
 
-    const getHeightForItem = useCallback(
-        (item: T | undefined): number => {
-            if (!item) {
-                return blockHeight;
-            }
-
-            if(getItemHeight) {
-                return getItemHeight(item);
-            }
-            
-            return blockHeight;
-        },
-        [blockHeight, getItemHeight]
-    );
-
     const getHeightByKey = useCallback(
         (key: string): number => {
             const item = itemsMap.current.get(key);
-            return getHeightForItem(item);
+            if (!item) return blockHeight;
+            return getItemHeight ? getItemHeight(item) : blockHeight;
         },
-        [getHeightForItem]
+        [blockHeight, getItemHeight]
     );
 
     const getPositionByIndex = useCallback(
@@ -74,14 +60,7 @@ export function useGridState<T extends BaseItemType>({
                 (a, b) => (currentOrderMap.get(String(a.key)) ?? 0) - (currentOrderMap.get(String(b.key)) ?? 0)
             );
 
-            return calculatePositionByIndex(
-                index,
-                numColumns,
-                blockWidth,
-                blockHeight,
-                sortedItems,
-                getItemHeight
-            );
+            return calculatePositionByIndex(index, numColumns, blockWidth, blockHeight, sortedItems, getItemHeight);
         },
         [containerLayout, numColumns, blockWidth, blockHeight, getItemHeight]
     );
@@ -93,14 +72,23 @@ export function useGridState<T extends BaseItemType>({
         return undefined;
     }, []);
 
+    const animateToPosition = useCallback((anim: Animated.ValueXY, pos: Position) => {
+        Animated.timing(anim, {
+            toValue: pos,
+            duration: ANIMATION_DURATION,
+            useNativeDriver: false,
+        }).start();
+    }, []);
+
     useEffect(() => {
         setInternalData(data);
 
-        const keys = new Set(data.map((i) => String(i.key)));
+        const currentKeys = new Set(data.map((i) => String(i.key)));
         const previousKeys = new Set(itemsMap.current.keys());
 
-        for (const key of Array.from(itemsMap.current.keys())) {
-            if (!keys.has(key)) {
+        // Supprimer les items qui n'existent plus
+        for (const key of previousKeys) {
+            if (!currentKeys.has(key)) {
                 itemsMap.current.delete(key);
                 orderMap.current.delete(key);
                 itemAnims.current.delete(key);
@@ -108,24 +96,23 @@ export function useGridState<T extends BaseItemType>({
             }
         }
 
-        let needsRecalculation = false;
-        const newHeights = new Map<string, number>();
+        // Détecter les changements de hauteur et les nouveaux items
+        let heightsChanged = false;
         const newItemKeys = new Set<string>();
 
         data.forEach((item, index) => {
             const key = String(item.key);
             const currentHeight = getItemHeight ? getItemHeight(item) : blockHeight;
             const previousHeight = itemHeightsRef.current.get(key);
-            const isNewItem = !previousKeys.has(key);
+            const isNew = !previousKeys.has(key);
 
-            newHeights.set(key, currentHeight);
-
-            if (isNewItem) {
+            if (isNew) {
                 newItemKeys.add(key);
             } else if (previousHeight !== undefined && previousHeight !== currentHeight) {
-                needsRecalculation = true;
+                heightsChanged = true;
             }
 
+            itemHeightsRef.current.set(key, currentHeight);
             itemsMap.current.set(key, item);
             orderMap.current.set(key, index);
 
@@ -134,45 +121,38 @@ export function useGridState<T extends BaseItemType>({
             }
         });
 
-        itemHeightsRef.current = newHeights;
+        // Mettre à jour les positions si nécessaire
+        if (!containerLayout) return;
 
-        if (containerLayout) {
-            data.forEach((item, index) => {
-                const key = String(item.key);
-                const pos = getPositionByIndex(index);
-                const anim = itemAnims.current.get(key);
-                const isActive = key === activeItemKeyRef.current;
-                const isNewItem = newItemKeys.has(key);
+        data.forEach((item, index) => {
+            const key = String(item.key);
+            const anim = itemAnims.current.get(key);
+            if (!anim) return;
 
-                if (anim && (!isActive || !isDraggingRef.current)) {
-                    if (isNewItem) {
-                        // New items: set position immediately (they are hidden via opacity anyway)
-                        anim.setValue(pos);
-                    } else if (needsRecalculation) {
-                        // Existing items when heights changed: animate to new position
-                        Animated.timing(anim, {
-                            toValue: pos,
-                            duration: 200,
-                            useNativeDriver: false,
-                        }).start();
-                    } else {
-                        // Check if position actually changed before deciding
-                        const currentX = (anim.x as any)._value;
-                        const currentY = (anim.y as any)._value;
-                        const positionChanged = Math.abs(currentX - pos.x) > 0.5 || Math.abs(currentY - pos.y) > 0.5;
-                        
-                        if (positionChanged) {
-                            Animated.timing(anim, {
-                                toValue: pos,
-                                duration: 200,
-                                useNativeDriver: false,
-                            }).start();
-                        }
-                    }
-                }
-            });
-        }
-    }, [data, numColumns, blockWidth, blockHeight, containerLayout, getItemHeight, getPositionByIndex]);
+            const isActive = key === activeItemKeyRef.current && isDraggingRef.current;
+            if (isActive) return;
+
+            const pos = getPositionByIndex(index);
+
+            if (newItemKeys.has(key)) {
+                // Nouveaux items : position immédiate (cachés par opacité)
+                anim.setValue(pos);
+                return;
+            }
+
+            if (heightsChanged) {
+                animateToPosition(anim, pos);
+                return;
+            }
+
+            // Animer seulement si la position a changé
+            const currentX = (anim.x as any)._value;
+            const currentY = (anim.y as any)._value;
+            if (Math.abs(currentX - pos.x) > 0.5 || Math.abs(currentY - pos.y) > 0.5) {
+                animateToPosition(anim, pos);
+            }
+        });
+    }, [data, numColumns, blockWidth, blockHeight, containerLayout, getItemHeight, getPositionByIndex, animateToPosition]);
 
     return {
         internalData,
@@ -182,7 +162,6 @@ export function useGridState<T extends BaseItemType>({
         itemAnims,
         getPositionByIndex,
         getKeyByOrder,
-        getHeightForItem,
         getHeightByKey,
     };
 }
