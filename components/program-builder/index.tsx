@@ -12,7 +12,6 @@ import { Header } from "./components/layout/header";
 import { PillButton } from "./components/pill-button";
 import ExerciseLibraryPanel from "./exercise-library-panel";
 import { HEADER_SCROLL_DISTANCE, useHeaderAnimations } from "./hooks/use-header-animations";
-import { Exercise } from "./types/exercise";
 import WorkoutBuilderPanel from "./workout-builder-panel";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -27,7 +26,7 @@ export function ProgramBuilder() {
     const scrollY = useRef(new Animated.Value(0)).current;
     const { headerHeight } = useHeaderAnimations(scrollY);
 
-    const exerciseListRef = useRef<FlashListRef<Exercise> | null>(null);
+    const exerciseListRef = useRef<FlashListRef<any> | null>(null);
     const handleScrollToTop = () => exerciseListRef.current?.scrollToOffset({ offset: 0, animated: true });
 
     return (

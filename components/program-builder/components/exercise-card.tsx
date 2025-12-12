@@ -1,13 +1,13 @@
 import { EyeOpenIcon } from "@/components/ui/icons";
 import { Headline } from "@/components/ui/typography";
 import { Pressable, TouchableOpacity, View } from "react-native";
-import { Exercise } from "../types/exercise";
+import { Muscle } from "../types";
 import BodyHeatmap from "./body-heatmap";
 import { MuscleBadge } from "./muscle-badge";
 
 type ExerciseCardProps = {
     displayMode?: "grid" | "list";
-    exercise: Exercise;
+    exercise: any;
 }
 
 export function ExerciseCard ({ displayMode = "grid", exercise }: ExerciseCardProps) {
@@ -45,7 +45,7 @@ const ExerciseCardGrid = ({ exercise }: ExerciseCardProps) => {
                     {exercise.name}
                 </Headline>
                 <View className="flex flex-row flex-wrap gap-x-1 gap-y-2">
-                    {exercise.muscles.map(muscle => (
+                    {exercise.muscles.map((muscle: Muscle) => (
                         <MuscleBadge key={muscle.id} muscle={muscle} />
                     ))}
                 </View>
@@ -69,7 +69,7 @@ const ExerciseCardList = ({ exercise }: ExerciseCardProps) => {
                     {exercise.name}
                 </Headline>
                 <View className="flex flex-row flex-wrap gap-x-1 gap-y-2">
-                    {exercise.muscles.map(muscle => (
+                    {exercise.muscles.map((muscle: Muscle) => (
                         <MuscleBadge key={muscle.id} muscle={muscle} />
                     ))}
                 </View>
