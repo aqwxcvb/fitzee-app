@@ -1,5 +1,5 @@
-import { ActionSheet } from "@/components/ui/action-sheet/action-sheet";
-import { ActionSheetOption } from "@/components/ui/action-sheet/types";
+import { ActionSheet } from "@/components/modules/action-sheet/action-sheet";
+import { ActionSheetOption } from "@/components/modules/action-sheet/types";
 import { CarretIcon, CrossCircleIcon } from "@/components/ui/icons";
 import { useTranslation } from "@/i18n";
 import React, { useCallback, useMemo, useState } from "react";

@@ -1,10 +1,10 @@
+import { DraggableGrid } from "@/components/modules/draggable-grid";
 import { AutoScrollView } from "@/components/ui/auto-scroll-view";
 import { Body, Headline, Title } from "@/components/ui/typography";
 import { AutoScrollProvider, useAutoScroll } from "@/contexts";
 import { Monicon } from "@monicon/native";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
-import { DraggableGrid } from "react-native-draggable-grid";
 import { Exercise } from "./exercise-library-panel";
 
 // Styles

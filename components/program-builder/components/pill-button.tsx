@@ -1,5 +1,5 @@
-import { ActionSheetOption } from "@/components/ui/action-sheet";
-import { ActionSheet } from "@/components/ui/action-sheet/action-sheet";
+import { ActionSheetOption } from "@/components/modules/action-sheet";
+import { ActionSheet } from "@/components/modules/action-sheet/action-sheet";
 import { CarretIcon, PlusFilledIcon, PlusIcon } from "@/components/ui/icons";
 import { TouchableOpacity, View } from "react-native";
 

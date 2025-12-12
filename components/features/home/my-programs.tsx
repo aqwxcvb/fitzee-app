@@ -1,3 +1,7 @@
+import {
+    DraggableGrid,
+    DraggableGridRef
+} from "@/components/modules/draggable-grid";
 import { Body, Headline } from "@/components/ui/typography";
 import { useAutoScroll } from "@/contexts/auto-scroll-context";
 import { useTranslation } from "@/i18n";
@@ -17,10 +21,6 @@ import {
     useColorScheme,
     View
 } from "react-native";
-import {
-    DraggableGrid,
-    DraggableGridRef
-} from "react-native-draggable-grid";
 
 interface Program {
     key: string;

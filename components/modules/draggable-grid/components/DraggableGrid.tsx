@@ -12,14 +12,14 @@ import {
     Pressable,
     StyleSheet,
 } from "react-native";
-import { useDragHandlers } from "../hooks/useDragHandlers";
-import { useGridState } from "../hooks/useGridState";
 import type {
     BaseItemType,
     ContainerLayout,
     DraggableGridProps,
     DraggableGridRef,
-} from "../src/types";
+} from "react-native-draggable-grid/src/types";
+import { useDragHandlers } from "../hooks/useDragHandlers";
+import { useGridState } from "../hooks/useGridState";
 import { calculateTotalGridHeight, isPointInsideItem } from "../utils/grid-calculations";
 import { Block } from "./Block";
 

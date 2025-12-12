@@ -1,4 +1,4 @@
-import { ActionSheetProvider } from "@/components/ui/action-sheet/action-sheet-context";
+import { ActionSheetProvider } from "@/components/modules/action-sheet/action-sheet-context";
 import { TranslationProvider } from "@/i18n";
 import { JetBrainsMono_400Regular, JetBrainsMono_500Medium, JetBrainsMono_700Bold } from "@expo-google-fonts/jetbrains-mono";
 import { PlayfairDisplay_400Regular, PlayfairDisplay_500Medium, PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from "@expo-google-fonts/playfair-display";

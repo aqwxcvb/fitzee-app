@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from "react";
 import { Animated, PanResponder, PanResponderGestureState } from "react-native";
-import type { BaseItemType, Position } from "../src/types";
+import type { BaseItemType, Position } from "react-native-draggable-grid/src/types";
 import {
     calculateNewOrders,
     calculateOrderByPosition,

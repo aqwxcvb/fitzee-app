@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
-import type { BaseItemType, ContainerLayout, Position } from "../src/types";
+import type { BaseItemType, ContainerLayout, Position } from "react-native-draggable-grid/src/types";
 import { calculatePositionByIndex } from "../utils/grid-calculations";
 
 interface UseGridStateOptions<T extends BaseItemType> {
