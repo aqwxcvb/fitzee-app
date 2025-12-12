@@ -1,8 +1,8 @@
 import React, { memo } from "react";
 import { Animated, Pressable, StyleSheet, View } from "react-native";
-import type { BlockProps } from "react-native-draggable-grid/src/types";
 import { useJiggleAnimation } from "../hooks/useJiggleAnimation";
 import { useScaleAnimation } from "../hooks/useScaleAnimation";
+import type { BlockProps } from "../types";
 
 export const Block = memo(function Block({
     style,

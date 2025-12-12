@@ -1,4 +1,4 @@
-import type { BaseItemType, Position } from "react-native-draggable-grid/src/types";
+import type { BaseItemType, Position } from "../types";
 
 export function calculatePositionByIndex<T extends BaseItemType>(
     index: number,
