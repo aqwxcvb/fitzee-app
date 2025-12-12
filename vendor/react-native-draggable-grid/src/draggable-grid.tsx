@@ -77,17 +77,20 @@ const DraggableGridComponent = function<T extends BaseItemType>({
     }, [getHeightForItem]);
 
     // Helper: Get block position by index (supports dynamic heights for single column)
-    const getPositionByIndex = useCallback((index: number) => {
+    const getPositionByIndex = useCallback((index: number, orderMapOverride?: Map<string, number>) => {
         if (!containerLayout) return { x: 0, y: 0 };
         
         const col = index % numColumns;
         
         // Si on utilise des hauteurs dynamiques (single column only)
         if (getItemHeight && numColumns === 1) {
+            // Utiliser orderMapOverride si fourni, sinon orderMap.current
+            const currentOrderMap = orderMapOverride || orderMap.current;
+            
             // Calculer la position Y en additionnant les hauteurs des items précédents
             let yPos = 0;
             const sortedItems = Array.from(itemsMap.current.entries())
-                .sort((a, b) => (orderMap.current.get(a[0]) ?? 0) - (orderMap.current.get(b[0]) ?? 0));
+                .sort((a, b) => (currentOrderMap.get(a[0]) ?? 0) - (currentOrderMap.get(b[0]) ?? 0));
             
             for (let i = 0; i < index && i < sortedItems.length; i++) {
                 const [, item] = sortedItems[i];
@@ -363,11 +366,15 @@ const DraggableGridComponent = function<T extends BaseItemType>({
         }
         
         if (newOrder !== oldOrder && oldOrder !== undefined) {
+            // Créer un orderMap temporaire avec le nouvel ordre pour calculer les positions correctes
+            const tempOrderMap = new Map(orderMap.current);
+            tempOrderMap.set(activeKey, newOrder);
+            
+            // Calculer les nouveaux ordres pour tous les items
+            const updates: Array<{key: string, nextOrder: number, currentOrder: number}> = [];
+            
             orderMap.current.forEach((order, key) => {
-                if (key === activeKey) {
-                    orderMap.current.set(key, newOrder);
-                    return;
-                }
+                if (key === activeKey) return;
 
                 // Skip disabledReSorted items update (should not move)
                 const item = itemsMap.current.get(key);
@@ -385,16 +392,24 @@ const DraggableGridComponent = function<T extends BaseItemType>({
                 }
                 
                 if (nextOrder !== order) {
-                    orderMap.current.set(key, nextOrder);
-                    const anim = itemAnims.current.get(key);
-                    const newPos = getPositionByIndex(nextOrder);
-                    Animated.timing(anim!, {
-                        toValue: newPos,
-                        duration: 200,
-                        useNativeDriver: false,
-                    }).start();
+                    tempOrderMap.set(key, nextOrder);
+                    updates.push({ key, nextOrder, currentOrder: order });
                 }
             });
+            
+            // Animer les items vers leurs nouvelles positions en utilisant le orderMap temporaire
+            updates.forEach(({ key, nextOrder }) => {
+                const anim = itemAnims.current.get(key);
+                const newPos = getPositionByIndex(nextOrder, tempOrderMap);
+                Animated.timing(anim!, {
+                    toValue: newPos,
+                    duration: 200,
+                    useNativeDriver: false,
+                }).start();
+            });
+            
+            // Mettre à jour le vrai orderMap après avoir lancé les animations
+            orderMap.current = tempOrderMap;
         }
     };
 

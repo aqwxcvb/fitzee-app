@@ -86,7 +86,7 @@ const GroupContent = memo(({
         <View className="flex-1 m-2 p-2 rounded-2xl bg-accent-light/20 dark:bg-accent-dark/20 border-2 border-dashed border-gray-500" style={shadow}>
             <View className="flex-row items-center justify-between mb-2 px-2">
                 <View className="flex-row items-center gap-2">
-                    <Monicon name="solar:layers-bold" size={16} color={isDark ? "#0A84FF" : "#007AFF"} />
+                <Monicon name="solar:layers-bold" size={16} color={isDark ? "#0A84FF" : "#007AFF"} />
                     <Body className="text-xs text-accent-light dark:text-accent-dark font-semibold">
                         Superset • {group.children.length} exercices
                     </Body>
