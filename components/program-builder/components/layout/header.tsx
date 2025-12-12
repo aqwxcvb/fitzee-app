@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderAnimations } from "../../hooks/use-header-animations";
-import ExerciseSearchBar from "../exercise-search-bar";
+import { SearchBar } from "../search/search-bar";
 
 interface HeaderProps {
     scrollY: Animated.Value;
@@ -75,7 +75,7 @@ export function Header({ scrollY, sessionName, onSessionNameChange, searchValue,
                 </View>
 
                 <Animated.View style={{ height: animatedValues.searchBarHeight, opacity: animatedValues.searchBarOpacity, overflow: "hidden" }}>
-                    <ExerciseSearchBar value={searchValue} onChangeText={onSearchValueChange} onFilterPress={() => {}} />
+                    <SearchBar value={searchValue} onChangeText={onSearchValueChange} />
                 </Animated.View>
             </View>
 
@@ -106,7 +106,7 @@ export function Header({ scrollY, sessionName, onSessionNameChange, searchValue,
                     </View>
                 </View>
 
-                <ExerciseSearchBar value={searchValue} onChangeText={onSearchValueChange} onFilterPress={() => {}} />
+                <SearchBar value={searchValue} onChangeText={onSearchValueChange} />
             </Animated.View>
         </Animated.View>
     );

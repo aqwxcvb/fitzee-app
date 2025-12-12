@@ -15,6 +15,7 @@ export type ActionSheetProps = {
 }
 
 export type ActionSheetOption = {
+    category?: string;
     label: string;
     icon?: React.ReactNode;
     onPress: () => void;

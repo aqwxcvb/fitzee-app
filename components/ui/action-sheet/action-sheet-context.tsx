@@ -1,5 +1,17 @@
-import { createContext, useEffect, useRef, useState } from "react";
-import { Animated, Dimensions, LayoutChangeEvent, Modal, Platform, Pressable, Text, TouchableOpacity, useColorScheme, View } from "react-native";
+import { createContext, Fragment, useEffect, useMemo, useRef, useState } from "react";
+import {
+    Animated,
+    Dimensions,
+    LayoutChangeEvent,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    useColorScheme,
+    View
+} from "react-native";
 import { ActionSheet, ActionSheetOption, ActionSheetPlacement, Anchor } from "./types";
 
 type ActionSheetContextValue = {
@@ -33,6 +45,7 @@ export function ActionSheetProvider({ children }: { children: React.ReactNode })
     const [isLayoutReady, setIsLayoutReady] = useState(false);
     const [offset, setOffset] = useState(8);
     const [placement, setPlacement] = useState<ActionSheetPlacement>("auto");
+    const [maxScrollHeight, setMaxScrollHeight] = useState(240);
 
     const scale = useRef(new Animated.Value(0)).current;
     const opacity = useRef(new Animated.Value(0)).current;
@@ -46,6 +59,7 @@ export function ActionSheetProvider({ children }: { children: React.ReactNode })
 
     const handleModalLayout = (event: LayoutChangeEvent) => {
         const { height, width } = event.nativeEvent.layout;
+
         setActionSheet({ height, width });
         setIsLayoutReady(true);
     };
@@ -53,6 +67,27 @@ export function ActionSheetProvider({ children }: { children: React.ReactNode })
     const handleOptionPress = (option: ActionSheetOption) => {
         option.onPress?.();
         handleClose();
+    };
+
+    const calculateMaxScrollHeight = () => {
+        if (!anchor) {
+            return 240;
+        }
+
+        const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Platform.OS === "android" 
+            ? Dimensions.get("screen") 
+            : Dimensions.get("window");
+
+        const anchorY = anchor.y;
+        const anchorHeight = anchor.height;
+
+        const spaceBelow = SCREEN_HEIGHT - (anchorY + anchorHeight) - offset * 2;
+        const spaceAbove = anchorY - offset * 2;
+
+        const maxAvailableHeight = Math.max(spaceBelow, spaceAbove);
+        
+        // Limiter à un minimum de 100px et maximum de 400px
+        return Math.min(Math.max(maxAvailableHeight, 100), 400);
     };
 
     const getPopupPositionStyle = () => {
@@ -81,29 +116,43 @@ export function ActionSheetProvider({ children }: { children: React.ReactNode })
             anchorY - offset - actionSheet.height >= offset;
 
         const hasSpaceRight =
-            anchorX + anchorWidth + offset + actionSheet.width <= SCREEN_WIDTH - offset;
+            anchorX + actionSheet.width <= SCREEN_WIDTH - offset;
 
         const hasSpaceLeft =
-            anchorX - offset - actionSheet.width >= offset;
+            anchorX + anchorWidth - actionSheet.width >= offset;
 
-        const placeBelow = () => ({
-            top: clamp(anchorY + anchorHeight + offset, MIN_TOP, MAX_TOP),
-            left: clamp(anchorX + anchorWidth - actionSheet.width, MIN_LEFT, MAX_LEFT),
-        });
+        const placeBelow = () => {
+            // Vérifier si on peut s'aligner à gauche (s'ouvrir vers la droite)
+            const canAlignLeft = anchorX + actionSheet.width <= SCREEN_WIDTH - offset;
+            
+            return {
+                top: clamp(anchorY + anchorHeight + offset, MIN_TOP, MAX_TOP),
+                left: canAlignLeft 
+                    ? clamp(anchorX, MIN_LEFT, MAX_LEFT)
+                    : clamp(anchorX + anchorWidth - actionSheet.width, MIN_LEFT, MAX_LEFT),
+            };
+        };
 
-        const placeAbove = () => ({
-            top: clamp(anchorY - actionSheet.height - offset, MIN_TOP, MAX_TOP),
-            left: clamp(anchorX + anchorWidth - actionSheet.width, MIN_LEFT, MAX_LEFT),
-        });
+        const placeAbove = () => {
+            // Vérifier si on peut s'aligner à gauche (s'ouvrir vers la droite)
+            const canAlignLeft = anchorX + actionSheet.width <= SCREEN_WIDTH - offset;
+            
+            return {
+                top: clamp(anchorY - actionSheet.height - offset, MIN_TOP, MAX_TOP),
+                left: canAlignLeft 
+                    ? clamp(anchorX, MIN_LEFT, MAX_LEFT)
+                    : clamp(anchorX + anchorWidth - actionSheet.width, MIN_LEFT, MAX_LEFT),
+            };
+        };
 
         const placeRight = () => ({
             top: clamp(anchorY, MIN_TOP, MAX_TOP),
-            left: clamp(anchorX + anchorWidth + offset, MIN_LEFT, MAX_LEFT),
+            left: clamp(anchorX, MIN_LEFT, MAX_LEFT),
         });
 
         const placeLeft = () => ({
             top: clamp(anchorY, MIN_TOP, MAX_TOP),
-            left: clamp(anchorX - actionSheet.width - offset, MIN_LEFT, MAX_LEFT),
+            left: clamp(anchorX + anchorWidth - actionSheet.width, MIN_LEFT, MAX_LEFT),
         });
 
         const resolveExplicitPlacement = (placement: ActionSheetPlacement) => {
@@ -158,6 +207,7 @@ export function ActionSheetProvider({ children }: { children: React.ReactNode })
         }
 
         setIsLayoutReady(false);
+        setMaxScrollHeight(calculateMaxScrollHeight());
         setVisible(true);
     }, [anchor]);
 
@@ -197,6 +247,74 @@ export function ActionSheetProvider({ children }: { children: React.ReactNode })
         },
     });
 
+    const renderOptions = useMemo(() => {        
+        const categorizedOptions: ActionSheetOption[] = [];
+        const uncategorizedOptions: ActionSheetOption[] = [];
+    
+        options.forEach(option => {
+            if (option.category) {
+                categorizedOptions.push(option);
+            } else {
+                uncategorizedOptions.push(option);
+            }
+        });
+    
+        categorizedOptions.sort((a, b) => {
+            if (a.category! < b.category!) return -1;
+            if (a.category! > b.category!) return 1;
+            
+            if (a.label < b.label) return -1;
+            if (a.label > b.label) return 1;
+            return 0;
+        });
+    
+        uncategorizedOptions.sort((a, b) => {
+            if (a.label < b.label) return -1;
+            if (a.label > b.label) return 1;
+            return 0;
+        });
+        
+        const sortedOptions = [...categorizedOptions, ...uncategorizedOptions];
+                
+        let lastCategory: string | undefined = undefined;
+        return sortedOptions.map((option, index) => {
+            const isNewCategory = option.category && option.category !== lastCategory;
+            const nextOption = sortedOptions[index + 1];
+            
+            const isNotLastItemGlobal = index < sortedOptions.length - 1;
+            const isEndOfCategoryGroup = nextOption && nextOption.category !== option.category;
+            const shouldRenderSeparator = isNotLastItemGlobal && !isEndOfCategoryGroup;
+            
+            lastCategory = option.category;
+    
+            return (
+                <Fragment key={option.label}> 
+                    {isNewCategory && (
+                        <View className="py-4 px-6">
+                            <Text className="font-sfpro-semibold text-[13px] uppercase text-content-secondary-light dark:text-content-secondary-dark">
+                                {option.category}
+                            </Text>
+                        </View>
+                    )}
+    
+                    <TouchableOpacity 
+                        onPress={() => handleOptionPress(option)} 
+                        className="px-6 py-3.5 flex-row items-center gap-4"
+                    >
+                        {option.icon && option.icon}
+                        <Text className="shrink font-sfpro-regular text-[15px] text-content-primary-light dark:text-content-primary-dark">
+                            {option.label}
+                        </Text>
+                    </TouchableOpacity>
+    
+                    {shouldRenderSeparator && (
+                        <View className="h-px bg-stroke-primary-light dark:bg-stroke-primary-dark" />
+                    )}
+                </Fragment>
+            );
+        });
+    }, [options, handleOptionPress]);
+
     return (
         <ActionSheetContext.Provider
             value={{
@@ -235,21 +353,12 @@ export function ActionSheetProvider({ children }: { children: React.ReactNode })
                         { transform: [{ scale: scale }], opacity: isLayoutReady ? opacity : 0 },
                     ]}
                 >
-                    <View>
-                        {options.map((option, index) => (
-                            <TouchableOpacity 
-                                key={index} 
-                                onPress={() => handleOptionPress(option)} 
-                                className="px-6 py-3.5 flex-row items-center gap-4"
-                            >
-                                {option.icon && option.icon}
-
-                                <Text className="shrink font-sfpro-regular text-[16px] text-content-primary-light dark:text-content-primary-dark">
-                                    {option.label}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
+                    <ScrollView 
+                        showsVerticalScrollIndicator={false}
+                        style={{ maxHeight: maxScrollHeight, flexGrow: 0 }}
+                    >
+                        {renderOptions}
+                    </ScrollView>
                 </Animated.View>
             </Modal>
         </ActionSheetContext.Provider>
