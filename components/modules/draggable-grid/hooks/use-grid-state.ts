@@ -97,6 +97,7 @@ export function useGridState<T extends BaseItemType>({
         setInternalData(data);
 
         const keys = new Set(data.map((i) => String(i.key)));
+        const previousKeys = new Set(itemsMap.current.keys());
 
         for (const key of Array.from(itemsMap.current.keys())) {
             if (!keys.has(key)) {
@@ -109,15 +110,19 @@ export function useGridState<T extends BaseItemType>({
 
         let needsRecalculation = false;
         const newHeights = new Map<string, number>();
+        const newItemKeys = new Set<string>();
 
         data.forEach((item, index) => {
             const key = String(item.key);
             const currentHeight = getItemHeight ? getItemHeight(item) : blockHeight;
             const previousHeight = itemHeightsRef.current.get(key);
+            const isNewItem = !previousKeys.has(key);
 
             newHeights.set(key, currentHeight);
 
-            if (previousHeight !== undefined && previousHeight !== currentHeight) {
+            if (isNewItem) {
+                newItemKeys.add(key);
+            } else if (previousHeight !== undefined && previousHeight !== currentHeight) {
                 needsRecalculation = true;
             }
 
@@ -137,16 +142,32 @@ export function useGridState<T extends BaseItemType>({
                 const pos = getPositionByIndex(index);
                 const anim = itemAnims.current.get(key);
                 const isActive = key === activeItemKeyRef.current;
+                const isNewItem = newItemKeys.has(key);
 
                 if (anim && (!isActive || !isDraggingRef.current)) {
-                    if (needsRecalculation) {
+                    if (isNewItem) {
+                        // New items: set position immediately (they are hidden via opacity anyway)
+                        anim.setValue(pos);
+                    } else if (needsRecalculation) {
+                        // Existing items when heights changed: animate to new position
                         Animated.timing(anim, {
                             toValue: pos,
                             duration: 200,
                             useNativeDriver: false,
                         }).start();
                     } else {
-                        anim.setValue(pos);
+                        // Check if position actually changed before deciding
+                        const currentX = (anim.x as any)._value;
+                        const currentY = (anim.y as any)._value;
+                        const positionChanged = Math.abs(currentX - pos.x) > 0.5 || Math.abs(currentY - pos.y) > 0.5;
+                        
+                        if (positionChanged) {
+                            Animated.timing(anim, {
+                                toValue: pos,
+                                duration: 200,
+                                useNativeDriver: false,
+                            }).start();
+                        }
                     }
                 }
             });

@@ -67,6 +67,14 @@ function DraggableGridInner<T extends BaseItemType>(
 
     const [itemLayouts, setItemLayouts] = useState<Record<string, ItemMeasuredLayout>>({});
 
+    // Track items that are pending their first measurement (to hide them until measured)
+    const [pendingMeasurementKeys, setPendingMeasurementKeys] = useState<Set<string>>(new Set());
+    const pendingMeasurementKeysRef = useRef<Set<string>>(new Set());
+    const previousKeysRef = useRef<Set<string>>(new Set());
+    
+    // Keep ref in sync with state
+    pendingMeasurementKeysRef.current = pendingMeasurementKeys;
+
     const containerRef = useRef<View | null>(null);
     const itemNativeRefs = useRef<Map<string, View | null>>(new Map());
 
@@ -217,11 +225,27 @@ function DraggableGridInner<T extends BaseItemType>(
             () => {},
             (_x: number, _y: number, width: number, height: number) => {
                 if (width <= 0 || height <= 0) return;
+                
+                const wasPending = pendingMeasurementKeysRef.current.has(key);
+                
                 setItemLayouts((prev) => {
                     const current = prev[key];
                     if (current && current.width === width && current.height === height) return prev;
                     return { ...prev, [key]: { width, height } };
                 });
+                
+                // Remove from pending after a short delay to let position animations complete
+                // This prevents the item from appearing while other items are still moving
+                if (wasPending) {
+                    setTimeout(() => {
+                        setPendingMeasurementKeys((prev) => {
+                            if (!prev.has(key)) return prev;
+                            const next = new Set(prev);
+                            next.delete(key);
+                            return next;
+                        });
+                    }, 220); // Slightly longer than animation duration (200ms)
+                }
             }
         );
     }, []);
@@ -233,6 +257,29 @@ function DraggableGridInner<T extends BaseItemType>(
             }, 0);
         });
     }, [internalData, measureItem]);
+
+    // Detect newly added items and mark them as pending measurement
+    useEffect(() => {
+        const currentKeys = new Set(data.map((item) => String(item.key)));
+        const prevKeys = previousKeysRef.current;
+
+        const newKeys: string[] = [];
+        currentKeys.forEach((key) => {
+            if (!prevKeys.has(key)) {
+                newKeys.push(key);
+            }
+        });
+
+        if (newKeys.length > 0) {
+            setPendingMeasurementKeys((prev) => {
+                const next = new Set(prev);
+                newKeys.forEach((k) => next.add(k));
+                return next;
+            });
+        }
+
+        previousKeysRef.current = currentKeys;
+    }, [data]);
 
     useEffect(() => {
         if (!containerLayout) return;
@@ -320,6 +367,7 @@ function DraggableGridInner<T extends BaseItemType>(
                     const shouldEnableJiggle = enableJiggle && !item.disabledDrag;
                     const showDeleteButton = !!renderDeleteButton && !item.disabledDrag;
                     const isGrouped = enableGrouping && groupedItemKeyRef.current === key;
+                    const isPendingMeasurement = pendingMeasurementKeys.has(key);
 
                     return (
                         <Block
@@ -335,6 +383,8 @@ function DraggableGridInner<T extends BaseItemType>(
                                 height: currentHeight,
                                 zIndex: isActive ? 999 : 1,
                                 transform: [{ translateX: anim.x }, { translateY: anim.y }],
+                                // Hide items until they are measured to prevent flash
+                                opacity: isPendingMeasurement ? 0 : 1,
                             }}
                             dragStartAnimationStyle={isActive && dragStartAnimation ? dragStartAnimation : undefined}
                             isEditMode={isEditMode}
