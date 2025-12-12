@@ -28,6 +28,14 @@ export default function TabLayout() {
                     ),
                 }}
             />
+
+            <Tabs.Screen
+                name="example"
+                options={{
+                    headerShown: false,
+                    title: __("Drag and Drop"),
+                }}
+            />
         </Tabs>
     )
     /*return (

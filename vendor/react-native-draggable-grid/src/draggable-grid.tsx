@@ -117,26 +117,68 @@ const DraggableGridComponent = function<T extends BaseItemType>({
                 itemsMap.current.delete(key);
                 orderMap.current.delete(key);
                 itemAnims.current.delete(key);
+                itemHeightsRef.current.delete(key);
             }
         }
 
+        // Calculate current heights and detect changes
+        let needsRecalculation = false;
+        const newHeights = new Map<string, number>();
+
         data.forEach((item, index) => {
-            itemsMap.current.set(String(item.key), item);
-            orderMap.current.set(String(item.key), index);
-            if (!itemAnims.current.has(String(item.key))) {
-                itemAnims.current.set(String(item.key), new Animated.ValueXY(getPositionByIndex(index)));
-            } else {
-                // Update position if layout changed or reordered externally?
-                 const pos = getPositionByIndex(index);
-                 const anim = itemAnims.current.get(String(item.key));
-                 
-                 const isActive = String(item.key) === activeItemKeyRef.current;
-                 if (anim && (!isActive || !isDraggingRef.current)) {
-                     anim.setValue(pos);
-                 }
+            const key = String(item.key);
+            const currentHeight = getItemHeight ? getItemHeight(item) : blockHeight;
+            const previousHeight = itemHeightsRef.current.get(key);
+            
+            newHeights.set(key, currentHeight);
+            
+            // Detect height changes
+            if (previousHeight !== undefined && previousHeight !== currentHeight) {
+                needsRecalculation = true;
+            }
+            
+            itemsMap.current.set(key, item);
+            orderMap.current.set(key, index);
+            
+            if (!itemAnims.current.has(key)) {
+                itemAnims.current.set(key, new Animated.ValueXY(getPositionByIndex(index)));
             }
         });
-    }, [data, numColumns, blockWidth, blockHeight]);
+
+        // Update stored heights
+        itemHeightsRef.current = newHeights;
+
+        // Recalculate all positions if heights changed
+        if (needsRecalculation && containerLayout) {
+            data.forEach((item, index) => {
+                const key = String(item.key);
+                const pos = getPositionByIndex(index);
+                const anim = itemAnims.current.get(key);
+                
+                const isActive = key === activeItemKeyRef.current;
+                if (anim && (!isActive || !isDraggingRef.current)) {
+                    // Use animation for smoother transition when heights change
+                    Animated.timing(anim, {
+                        toValue: pos,
+                        duration: 200,
+                        useNativeDriver: false,
+                    }).start();
+                }
+            });
+        } else if (containerLayout) {
+            // Update positions without animation for initial layout or when not dragging
+            data.forEach((item, index) => {
+                const key = String(item.key);
+                const pos = getPositionByIndex(index);
+                const anim = itemAnims.current.get(key);
+                
+                const isActive = key === activeItemKeyRef.current;
+                if (anim && (!isActive || !isDraggingRef.current)) {
+                    anim.setValue(pos);
+                }
+            });
+        }
+    }, [data, numColumns, blockWidth, blockHeight, containerLayout]);
 
     // External Control
     const exitEditMode = useCallback(() => {

@@ -49,14 +49,17 @@ const GroupContent = memo(({
     }, [group.key, onChildDelete]);
     
     const renderChildItem = useCallback((child: Exercise, childIdx: number) => (
-        <View className="p-3 rounded-xl bg-surface-light dark:bg-surface-dark">
+        <View className="p-3 rounded-xl bg-surface-light dark:bg-surface-dark border border-gray-300 dark:border-gray-700">
             <View className="flex-row items-center gap-3">
-                <View className="w-6 h-6 rounded-md bg-primary-light dark:bg-primary-dark items-center justify-center">
-                    <Body className="text-white text-xs">{childIdx + 1}</Body>
+                <View className="w-8 h-8 rounded-md bg-primary-light dark:bg-primary-dark items-center justify-center">
+                    <Body className="text-white text-xs font-bold">{childIdx + 1}</Body>
                 </View>
                 <View className="flex-1">
-                    <Headline className="text-sm" numberOfLines={1}>{child.name}</Headline>
-                    <Body className="text-xs">{child.muscle}</Body>
+                    <Headline className="text-sm font-semibold" numberOfLines={1}>{child.name}</Headline>
+                    <Body className="text-xs text-gray-600 dark:text-gray-400">{child.muscle}</Body>
+                </View>
+                <View className="bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded">
+                    <Body className="text-xs text-blue-600 dark:text-blue-400">52px</Body>
                 </View>
             </View>
         </View>
@@ -75,12 +78,22 @@ const GroupContent = memo(({
     
     const itemHeight = 52;
     const gridHeight = group.children.length * itemHeight;
+    const headerHeight = 40;
+    const padding = 20;
+    const totalHeight = headerHeight + gridHeight + padding;
     
     return (
         <View className="flex-1 m-2 p-2 rounded-2xl bg-accent-light/20 dark:bg-accent-dark/20 border-2 border-dashed border-gray-500" style={shadow}>
-            <View className="flex-row items-center gap-2 mb-2 px-2">
-                <Monicon name="solar:layers-bold" size={16} color={isDark ? "#0A84FF" : "#007AFF"} />
-                <Body className="text-xs text-accent-light dark:text-accent-dark">Superset • {group.children.length} exercices</Body>
+            <View className="flex-row items-center justify-between mb-2 px-2">
+                <View className="flex-row items-center gap-2">
+                    <Monicon name="solar:layers-bold" size={16} color={isDark ? "#0A84FF" : "#007AFF"} />
+                    <Body className="text-xs text-accent-light dark:text-accent-dark font-semibold">
+                        Superset • {group.children.length} exercices
+                    </Body>
+                </View>
+                <View className="bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
+                    <Body className="text-xs text-purple-600 dark:text-purple-400">{totalHeight}px</Body>
+                </View>
             </View>
             <View style={{ height: gridHeight }}>
                 <DraggableGrid
@@ -268,6 +281,8 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
     }, [setExercises]);
 
     const renderItem = useCallback((item: Exercise, idx: number) => {
+        const calculatedHeight = getItemHeight(item);
+        
         // Rendu pour les groupes (supersets) avec DraggableGrid imbriqué
         if (item.type === 'group' && item.children) {
             return (
@@ -284,19 +299,22 @@ const ProgramGrid = memo(({ exercises, setExercises, setIsDragging, isDark }: {
         
         // Rendu normal pour les exercices individuels
         return (
-            <View className="flex-1 m-2 p-4 rounded-2xl bg-surface-light dark:bg-surface-dark" style={shadow}>
+            <View className="flex-1 m-2 p-4 rounded-2xl bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700" style={shadow}>
                 <View className="flex-row items-center gap-3">
-                    <View className="w-8 h-8 rounded-lg bg-primary-light dark:bg-primary-dark items-center justify-center">
-                        <Headline className="text-white text-sm">{idx + 1}</Headline>
+                    <View className="w-10 h-10 rounded-lg bg-primary-light dark:bg-primary-dark items-center justify-center">
+                        <Headline className="text-white text-base font-bold">{idx + 1}</Headline>
                     </View>
                     <View className="flex-1">
-                        <Headline className="text-sm" numberOfLines={1}>{item.name}</Headline>
-                        <Body className="text-xs">{item.muscle}</Body>
+                        <Headline className="text-base font-semibold" numberOfLines={1}>{item.name}</Headline>
+                        <Body className="text-xs text-gray-600 dark:text-gray-400">{item.muscle}</Body>
+                    </View>
+                    <View className="bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded">
+                        <Body className="text-xs text-green-600 dark:text-green-400">{calculatedHeight}px</Body>
                     </View>
                 </View>
             </View>
         );
-    }, [shadow, isDark, handleChildrenReorder, handleItemDragOutside, handleChildDelete]);
+    }, [shadow, isDark, handleChildrenReorder, handleItemDragOutside, handleChildDelete, getItemHeight]);
 
     const renderDeleteButton = useCallback((_: Exercise, onDelete: () => void) => (
         <TouchableOpacity
