@@ -1,4 +1,4 @@
-export { DraggableGrid } from "./components/DraggableGrid";
+export { DraggableGrid } from "./components/draggable-grid";
 
 export type {
     BaseItemType, BlockProps, ContainerLayout, DraggableGridProps,
@@ -11,6 +11,6 @@ export {
     calculateOrderByPosition, calculatePositionByIndex, calculateTotalGridHeight
 } from "./utils/grid-calculations";
 
-export { useJiggleAnimation } from "./hooks/useJiggleAnimation";
-export { useScaleAnimation } from "./hooks/useScaleAnimation";
+export { useJiggleAnimation } from "./hooks/use-jiggle-animation";
+export { useScaleAnimation } from "./hooks/use-scale-animation";
 

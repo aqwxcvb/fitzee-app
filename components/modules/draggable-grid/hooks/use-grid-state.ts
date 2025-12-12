@@ -1,3 +1,4 @@
+// useGridState.ts
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
 import type { BaseItemType, ContainerLayout, Position } from "../types";
@@ -33,7 +34,7 @@ export function useGridState<T extends BaseItemType>({
     getItemHeight,
 }: UseGridStateOptions<T>): UseGridStateReturn<T> {
     const [internalData, setInternalData] = useState<T[]>(data);
-    
+
     const itemsMap = useRef<Map<string, T>>(new Map());
     const orderMap = useRef<Map<string, number>>(new Map());
     const itemAnims = useRef<Map<string, Animated.ValueXY>>(new Map());
@@ -43,10 +44,14 @@ export function useGridState<T extends BaseItemType>({
 
     const getHeightForItem = useCallback(
         (item: T | undefined): number => {
-            if (!item) return blockHeight;
-            if (getItemHeight) {
+            if (!item) {
+                return blockHeight;
+            }
+
+            if(getItemHeight) {
                 return getItemHeight(item);
             }
+            
             return blockHeight;
         },
         [blockHeight, getItemHeight]

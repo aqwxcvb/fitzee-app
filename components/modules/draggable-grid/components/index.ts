@@ -1,2 +1,3 @@
-export { Block } from "./Block";
-export { DraggableGrid } from "./DraggableGrid";
+export { Block } from "./block";
+export { DraggableGrid } from "./draggable-grid";
+

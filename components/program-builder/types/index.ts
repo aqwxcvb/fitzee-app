@@ -6,11 +6,10 @@ export interface Muscle {
     perspective: "front" | "back";
 }
 
-export interface Exercise {
-    id: number;
+export type WorkoutBuilderItem = {
+    key: string;
     name: string;
-    muscles: Muscle[];
-    icon?: string;
-    type?: "exercise" | "group";
-    children?: Exercise[];
+    backgroundColor: string;
+    isGroup?: boolean;
+    children?: WorkoutBuilderItem[];
 }

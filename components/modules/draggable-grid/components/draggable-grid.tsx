@@ -1,6 +1,7 @@
 import React, {
     forwardRef,
     useCallback,
+    useEffect,
     useImperativeHandle,
     useMemo,
     useRef,
@@ -11,9 +12,12 @@ import {
     LayoutChangeEvent,
     Pressable,
     StyleSheet,
+    UIManager,
+    View,
+    findNodeHandle,
 } from "react-native";
-import { useDragHandlers } from "../hooks/useDragHandlers";
-import { useGridState } from "../hooks/useGridState";
+import { useDragHandlers } from "../hooks/use-drag-handlers";
+import { useGridState } from "../hooks/use-grid-state";
 import type {
     BaseItemType,
     ContainerLayout,
@@ -21,9 +25,15 @@ import type {
     DraggableGridRef,
 } from "../types";
 import { calculateTotalGridHeight, isPointInsideItem } from "../utils/grid-calculations";
-import { Block } from "./Block";
+import { Block } from "./block";
 
 const DEFAULT_DELAY_LONG_PRESS = 200;
+const DEFAULT_FALLBACK_HEIGHT = 100;
+
+type ItemMeasuredLayout = {
+    width: number;
+    height: number;
+};
 
 function DraggableGridInner<T extends BaseItemType>(
     {
@@ -51,7 +61,14 @@ function DraggableGridInner<T extends BaseItemType>(
 ) {
     const [containerLayout, setContainerLayout] = useState<ContainerLayout | null>(null);
     const [blockWidth, setBlockWidth] = useState(0);
-    const [blockHeight, setBlockHeight] = useState(0);
+    const [blockHeight, setBlockHeight] = useState(
+        typeof itemHeight === "number" && itemHeight > 0 ? itemHeight : DEFAULT_FALLBACK_HEIGHT
+    );
+
+    const [itemLayouts, setItemLayouts] = useState<Record<string, ItemMeasuredLayout>>({});
+
+    const containerRef = useRef<View | null>(null);
+    const itemNativeRefs = useRef<Map<string, View | null>>(new Map());
 
     const [activeItemKey, setActiveItemKey] = useState<string | undefined>(undefined);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -63,6 +80,22 @@ function DraggableGridInner<T extends BaseItemType>(
         groupedItemKeyRef.current = value;
         setGroupedItemKeyState(value);
     }, []);
+
+    const getResolvedItemHeight = useCallback(
+        (item: T) => {
+            const key = String(item.key);
+            const measured = itemLayouts[key]?.height;
+            if (typeof measured === "number" && measured > 0) return measured;
+
+            const estimated = getItemHeight?.(item);
+            if (typeof estimated === "number" && estimated > 0) return estimated;
+
+            if (typeof itemHeight === "number" && itemHeight > 0) return itemHeight;
+
+            return blockHeight > 0 ? blockHeight : DEFAULT_FALLBACK_HEIGHT;
+        },
+        [itemLayouts, getItemHeight, itemHeight, blockHeight]
+    );
 
     const {
         internalData,
@@ -78,15 +111,15 @@ function DraggableGridInner<T extends BaseItemType>(
         data,
         numColumns,
         blockWidth,
-        blockHeight,
+        blockHeight: blockHeight > 0 ? blockHeight : DEFAULT_FALLBACK_HEIGHT,
         containerLayout,
-        getItemHeight,
+        getItemHeight: getResolvedItemHeight,
     });
 
-    const { panResponder, isDraggingRef, activeItemKeyRef, applyScrollOffset } = useDragHandlers({
+    const { panResponder, activeItemKeyRef, applyScrollOffset } = useDragHandlers({
         numColumns,
         blockWidth,
-        blockHeight,
+        blockHeight: blockHeight > 0 ? blockHeight : DEFAULT_FALLBACK_HEIGHT,
         enableGrouping,
         internalData,
         itemsMap,
@@ -96,7 +129,7 @@ function DraggableGridInner<T extends BaseItemType>(
         getKeyByOrder,
         getHeightForItem,
         getHeightByKey,
-        getItemHeight,
+        getItemHeight: getResolvedItemHeight,
         setInternalData,
         activeItemKey,
         setActiveItemKey,
@@ -151,24 +184,73 @@ function DraggableGridInner<T extends BaseItemType>(
     const onLayout = useCallback(
         (event: LayoutChangeEvent) => {
             const { width, height } = event.nativeEvent.layout;
+
             setContainerLayout({ width, height });
+
             const bWidth = width / numColumns;
-            const bHeight = itemHeight || bWidth;
             setBlockWidth(bWidth);
-            setBlockHeight(bHeight);
+
+            const nextHeight =
+                typeof itemHeight === "number" && itemHeight > 0
+                    ? itemHeight
+                    : blockHeight > 0
+                      ? blockHeight
+                      : DEFAULT_FALLBACK_HEIGHT;
+
+            setBlockHeight(nextHeight);
         },
-        [numColumns, itemHeight]
+        [numColumns, itemHeight, blockHeight]
     );
 
+    const measureItem = useCallback((key: string) => {
+        const containerNode = containerRef.current;
+        const itemNode = itemNativeRefs.current.get(key) || null;
+
+        const containerHandle = containerNode ? findNodeHandle(containerNode) : null;
+        const itemHandle = itemNode ? findNodeHandle(itemNode) : null;
+
+        if (!containerHandle || !itemHandle) return;
+
+        UIManager.measureLayout(
+            itemHandle,
+            containerHandle,
+            () => {},
+            (_x: number, _y: number, width: number, height: number) => {
+                if (width <= 0 || height <= 0) return;
+                setItemLayouts((prev) => {
+                    const current = prev[key];
+                    if (current && current.width === width && current.height === height) return prev;
+                    return { ...prev, [key]: { width, height } };
+                });
+            }
+        );
+    }, []);
+
+    const remeasureAll = useCallback(() => {
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                internalData.forEach((item) => measureItem(String(item.key)));
+            }, 0);
+        });
+    }, [internalData, measureItem]);
+
+    useEffect(() => {
+        if (!containerLayout) return;
+        remeasureAll();
+    }, [containerLayout, internalData.length, isEditMode, remeasureAll]);
+
     const totalGridHeight = useMemo(() => {
-        return calculateTotalGridHeight(internalData, numColumns, blockHeight, getItemHeight);
-    }, [internalData, numColumns, blockHeight, getItemHeight]);
+        const baseHeight = blockHeight > 0 ? blockHeight : DEFAULT_FALLBACK_HEIGHT;
+        return calculateTotalGridHeight(internalData, numColumns, baseHeight, getResolvedItemHeight);
+    }, [internalData, numColumns, blockHeight, getResolvedItemHeight]);
 
     const handleBackgroundPress = useCallback(
         (event: any) => {
             if (!isEditMode) return;
 
             const { locationX, locationY } = event.nativeEvent;
+
+            const baseHeight = blockHeight > 0 ? blockHeight : DEFAULT_FALLBACK_HEIGHT;
 
             const isInside = isPointInsideItem(
                 locationX,
@@ -177,8 +259,8 @@ function DraggableGridInner<T extends BaseItemType>(
                 orderMap.current,
                 numColumns,
                 blockWidth,
-                blockHeight,
-                getItemHeight
+                baseHeight,
+                getResolvedItemHeight
             );
 
             if (!isInside) {
@@ -186,7 +268,16 @@ function DraggableGridInner<T extends BaseItemType>(
                 onEditModeChange?.(false);
             }
         },
-        [isEditMode, internalData, orderMap, numColumns, blockWidth, blockHeight, getItemHeight, onEditModeChange]
+        [
+            isEditMode,
+            internalData,
+            orderMap,
+            numColumns,
+            blockWidth,
+            blockHeight,
+            getResolvedItemHeight,
+            onEditModeChange,
+        ]
     );
 
     const sortedItems = useMemo(() => {
@@ -197,12 +288,15 @@ function DraggableGridInner<T extends BaseItemType>(
         });
     }, [internalData, activeItemKey]);
 
+    const baseHeight = blockHeight > 0 ? blockHeight : DEFAULT_FALLBACK_HEIGHT;
+
     return (
         <Pressable
             onPress={handleBackgroundPress}
             style={[style, styles.container, { height: totalGridHeight }]}
         >
-            <Animated.View
+            <View
+                ref={containerRef}
                 style={[styles.innerContainer, { height: totalGridHeight }]}
                 onLayout={onLayout}
                 {...panResponder.panHandlers}
@@ -210,7 +304,10 @@ function DraggableGridInner<T extends BaseItemType>(
                 {sortedItems.map((item) => {
                     const key = String(item.key);
                     const isActive = activeItemKey === key;
-                    const itemH = getHeightForItem(item);
+
+                    const measured = itemLayouts[key];
+                    const currentWidth = measured?.width ?? blockWidth;
+                    const currentHeight = measured?.height ?? getResolvedItemHeight(item) ?? baseHeight;
 
                     let anim = itemAnims.current.get(key);
                     if (!anim) {
@@ -234,8 +331,8 @@ function DraggableGridInner<T extends BaseItemType>(
                                 position: "absolute",
                                 top: 0,
                                 left: 0,
-                                width: blockWidth,
-                                height: itemH,
+                                width: currentWidth,
+                                height: currentHeight,
                                 zIndex: isActive ? 999 : 1,
                                 transform: [{ translateX: anim.x }, { translateY: anim.y }],
                             }}
@@ -250,11 +347,20 @@ function DraggableGridInner<T extends BaseItemType>(
                             }
                             isGrouped={isGrouped}
                         >
-                            {renderItem(item, orderMap.current.get(key) || 0)}
+                            <View
+                                collapsable={false}
+                                ref={(r) => {
+                                    itemNativeRefs.current.set(key, r);
+                                }}
+                                onLayout={() => measureItem(key)}
+                                style={{ width: "100%" }}
+                            >
+                                {renderItem(item, orderMap.current.get(key) || 0)}
+                            </View>
                         </Block>
                     );
                 })}
-            </Animated.View>
+            </View>
         </Pressable>
     );
 }

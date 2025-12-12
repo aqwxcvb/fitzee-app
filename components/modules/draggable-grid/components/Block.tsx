@@ -1,7 +1,8 @@
+// Block.tsx
 import React, { memo } from "react";
 import { Animated, Pressable, StyleSheet, View } from "react-native";
-import { useJiggleAnimation } from "../hooks/useJiggleAnimation";
-import { useScaleAnimation } from "../hooks/useScaleAnimation";
+import { useJiggleAnimation } from "../hooks/use-jiggle-animation";
+import { useScaleAnimation } from "../hooks/use-scale-animation";
 import type { BlockProps } from "../types";
 
 export const Block = memo(function Block({

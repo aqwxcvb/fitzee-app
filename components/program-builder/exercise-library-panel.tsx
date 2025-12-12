@@ -5,12 +5,11 @@ import { FlashList, FlashListRef } from "@shopify/flash-list";
 import { useCallback, useMemo, useState } from "react";
 import { Animated as RNAnimated, TouchableOpacity, View } from "react-native";
 import { ExerciseCard } from "./components/exercise-card";
-import { Exercise } from "./types/exercise";
 
 type AnimatedValue = number | RNAnimated.AnimatedAddition<number> | RNAnimated.AnimatedInterpolation<number>;
 type DisplayMode = "grid" | "list";
 
-const EXERCISES: Exercise[] = [
+const EXERCISES: any = [
     {
         id: 1,
         name: "Squat à la barre",
@@ -161,7 +160,7 @@ type ExerciseLibraryPanelProps = {
     currentHeaderHeight: AnimatedValue;
     headerScrollDistance: number;
     scrollY: RNAnimated.Value;
-    flashListRef?: React.RefObject<FlashListRef<Exercise> | null>;
+    flashListRef?: React.RefObject<FlashListRef<any> | null>;
 };
 
 const ExerciseLibraryPanel: React.FC<ExerciseLibraryPanelProps> = ({ 
@@ -181,9 +180,9 @@ const ExerciseLibraryPanel: React.FC<ExerciseLibraryPanelProps> = ({
     }, [isGrid]);
 
     const toggleDisplayMode = useCallback(() => setDisplayMode(mode => (mode === "grid" ? "list" : "grid")), []);
-    const keyExtractor = useCallback((item: Exercise) => item.id.toString(), []);
+    const keyExtractor = useCallback((item: any) => item.id.toString(), []);
 
-    const renderItem = useCallback(({ item }: { item: Exercise }) => (
+    const renderItem = useCallback(({ item }: { item: any }) => (
         <ExerciseCard exercise={item} displayMode={displayMode} />
     ), [displayMode]);
 
