@@ -5,7 +5,6 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Animated, Text, View } from "react-native";
 import { GroupBlock } from "./components/workout-builder/group-block";
 import { useGroupingHandlers } from "./hooks/use-grouping-handlers";
-import { useNestedGrouping } from "./hooks/use-nested-grouping";
 import type { WorkoutBuilderItem } from "./types";
 
 type AnimatedValue =
@@ -43,16 +42,16 @@ const WorkoutBuilderPanel: React.FC<{
     const [items, setItems] = useState<WorkoutBuilderItem[]>(initialItems);
     const [dragScope, setDragScope] = useState<DragScope>({ scope: "root" });
 
-    const { onGroupCreate, onChildDragOutside } = useGroupingHandlers({ setItems });
-    const { setGroupChildren } = useNestedGrouping(items, setItems);
+    const { onGroupCreate, onChildDragOutside, setGroupChildren } = useGroupingHandlers({ setItems });
 
     const activeNestedDragKey = dragScope.scope === "group" ? dragScope.groupKey : undefined;
-    
+
     const onRootDragStart = useCallback(() => {
         setDragScope({ scope: "root" });
     }, []);
 
-    const onRootDragRelease = useCallback(() => {
+    const onRootDragRelease = useCallback((newData: WorkoutBuilderItem[]) => {
+        setItems(newData);
         setDragScope({ scope: "root" });
     }, []);
 
@@ -132,7 +131,7 @@ const WorkoutBuilderPanel: React.FC<{
                     onGroupCreate={onGroupCreate}
                     onDragStart={onRootDragStart}
                     onDragRelease={onRootDragRelease}
-                    renderItem={(item: WorkoutBuilderItem) => renderRootItem(item)}
+                    renderItem={renderRootItem}
                 />
             </View>
         </Animated.ScrollView>
