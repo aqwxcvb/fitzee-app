@@ -33,6 +33,7 @@ export interface DraggableGridProps<T extends BaseItemType> {
     enableGrouping?: boolean;
     onGroupCreate?: (items: T[], targetItem: T) => void;
     activeNestedDragKey?: string;
+    outsideBoundsTopOffset?: number;
 }
 
 export interface Position {

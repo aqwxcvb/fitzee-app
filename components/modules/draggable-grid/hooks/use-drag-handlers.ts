@@ -15,6 +15,7 @@ interface UseDragHandlersOptions<T extends BaseItemType> {
     blockWidth: number;
     blockHeight: number;
     enableGrouping: boolean;
+    outsideBoundsTopOffset: number;
     internalData: T[];
     itemsMap: React.MutableRefObject<Map<string, T>>;
     orderMap: React.MutableRefObject<Map<string, number>>;
@@ -50,6 +51,7 @@ export function useDragHandlers<T extends BaseItemType>({
     blockWidth,
     blockHeight,
     enableGrouping,
+    outsideBoundsTopOffset,
     internalData,
     itemsMap,
     orderMap,
@@ -330,7 +332,7 @@ export function useDragHandlers<T extends BaseItemType>({
                 const currentY = (anim.y as any)._value;
                 const activeHeight = getHeightAtOrder(order);
 
-                if (isOutsideGridBounds(currentX, currentY, gridWidth, gridHeight, activeHeight) && onDragOutside) {
+                if (isOutsideGridBounds(currentX, currentY, gridWidth, gridHeight, activeHeight, outsideBoundsTopOffset) && onDragOutside) {
                     const draggedItem = itemsMap.current.get(key);
                     if (draggedItem) onDragOutside(draggedItem);
                     setActiveItemKey(undefined);
@@ -362,7 +364,7 @@ export function useDragHandlers<T extends BaseItemType>({
         clearHoverState();
     }, [
         enableGrouping, numColumns, blockWidth, blockHeight, getItemHeight,
-        itemsMap, orderMap, itemAnims, getHeightAtOrder, getSortedItems,
+        outsideBoundsTopOffset, itemsMap, orderMap, itemAnims, getHeightAtOrder, getSortedItems,
         setActiveItemKey, onDragOutside, onGroupCreate, finishWithRelease, clearHoverState,
     ]);
 

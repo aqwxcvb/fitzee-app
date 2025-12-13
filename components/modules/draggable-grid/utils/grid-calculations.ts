@@ -177,8 +177,9 @@ export function isOutsideGridBounds(
     gridWidth: number,
     gridHeight: number,
     itemHeight: number,
+    topOffset: number = 0,
     marginRatio: number = 0.3
 ): boolean {
     const margin = itemHeight * marginRatio;
-    return x < -margin || x > gridWidth + margin || y < -margin || y > gridHeight + margin;
+    return x < -margin || x > gridWidth + margin || y < -(margin + topOffset) || y > gridHeight + margin;
 }

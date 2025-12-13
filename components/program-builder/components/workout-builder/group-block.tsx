@@ -94,6 +94,7 @@ export function GroupBlock({
                     numColumns={1}
                     enableJiggle={false}
                     enableGrouping={false}
+                    outsideBoundsTopOffset={50}
                     onDragStart={handleDragStart}
                     onDragRelease={handleDragRelease}
                     onDragOutside={handleDragOutside}
