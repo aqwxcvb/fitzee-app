@@ -52,6 +52,7 @@ function DraggableGridInner<T extends BaseItemType>(
         dragStartAnimation,
         enableJiggle = true,
         enableGrouping = false,
+        activeNestedDragKey,
         delayLongPress = DEFAULT_LONG_PRESS_DELAY,
         onItemPress,
         onItemDelete,
@@ -354,9 +355,12 @@ function DraggableGridInner<T extends BaseItemType>(
             if (aKey === activeItemKey) return 1;
             if (bKey === activeItemKey) return -1;
 
+            if (aKey === activeNestedDragKey) return 1;
+            if (bKey === activeNestedDragKey) return -1;
+
             return 0;
         });
-    }, [internalData, activeItemKey]);
+    }, [internalData, activeItemKey, activeNestedDragKey]);
 
     const getOrCreateAnimation = useCallback(
         (item: T): Animated.ValueXY => {
@@ -382,6 +386,7 @@ function DraggableGridInner<T extends BaseItemType>(
         (item: T) => {
             const key = String(item.key);
             const isActive = activeItemKey === key;
+            const isNestedDragActive = activeNestedDragKey === key;
             const isGrouped = enableGrouping && groupedItemKeyRef.current === key;
             const isPendingMeasurement = itemsPendingMeasurement.has(key);
 
@@ -400,7 +405,7 @@ function DraggableGridInner<T extends BaseItemType>(
                 left: 0,
                 width,
                 height,
-                zIndex: isActive ? 999 : 1,
+                zIndex: isActive ? 999 : isNestedDragActive ? 998 : 1,
                 opacity: isPendingMeasurement ? 0 : 1,
                 transform: [
                     { translateX: animation.x },
@@ -443,6 +448,7 @@ function DraggableGridInner<T extends BaseItemType>(
         },
         [
             activeItemKey,
+            activeNestedDragKey,
             enableGrouping,
             itemsPendingMeasurement,
             measuredLayouts,

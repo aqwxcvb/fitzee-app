@@ -216,8 +216,8 @@ export function ActionSheetProvider({ children }: { children: React.ReactNode })
             Animated.spring(scale, {
                 toValue: visible ? 1 : 0,
                 useNativeDriver: true,
-                tension: 100,
-                friction: 8,
+                tension: 120,
+                friction: 12,
             }),
             Animated.timing(opacity, {
                 toValue: visible ? 1 : 0,

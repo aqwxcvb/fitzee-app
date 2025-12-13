@@ -27,6 +27,13 @@ export function GroupBlock({
 
     const rootShouldIgnore = dragScope.scope === "group" && dragScope.groupKey !== groupKey;
 
+    const handleDragStart = useCallback(
+        () => {
+            onGroupDragStart(groupKey);
+        },
+        [groupKey, onGroupDragStart]
+    );
+
     const handleDragRelease = useCallback(
         (data: WorkoutBuilderItem[]) => {
             setGroupChildren(group.key, data);
@@ -75,18 +82,19 @@ export function GroupBlock({
                 borderRadius: 12,
                 marginVertical: 8,
                 opacity: rootShouldIgnore ? 0.35 : 1,
+                overflow: "visible",
             }}
             pointerEvents={rootShouldIgnore ? "none" : "auto"}
         >
             <Text style={{ color: "white", fontSize: 14, fontWeight: "700" }}>{group.name}</Text>
 
-            <View style={{ marginTop: 10 }}>
+            <View style={{ marginTop: 10, overflow: "visible" }}>
                 <DraggableGrid
                     data={children}
                     numColumns={1}
                     enableJiggle={false}
                     enableGrouping={false}
-                    onDragStart={() => onGroupDragStart(groupKey)}
+                    onDragStart={handleDragStart}
                     onDragRelease={handleDragRelease}
                     onDragOutside={handleDragOutside}
                     renderItem={renderChildItem}

@@ -32,6 +32,7 @@ export interface DraggableGridProps<T extends BaseItemType> {
     renderDeleteButton?: (item: T, onDelete: () => void) => ReactElement;
     enableGrouping?: boolean;
     onGroupCreate?: (items: T[], targetItem: T) => void;
+    activeNestedDragKey?: string;
 }
 
 export interface Position {

@@ -45,6 +45,8 @@ const WorkoutBuilderPanel: React.FC<{
 
     const { onGroupCreate, onChildDragOutside } = useGroupingHandlers({ setItems });
     const { setGroupChildren } = useNestedGrouping(items, setItems);
+
+    const activeNestedDragKey = dragScope.scope === "group" ? dragScope.groupKey : undefined;
     
     const onRootDragStart = useCallback(() => {
         setDragScope({ scope: "root" });
@@ -126,6 +128,7 @@ const WorkoutBuilderPanel: React.FC<{
                     numColumns={1}
                     enableJiggle={false}
                     enableGrouping={true}
+                    activeNestedDragKey={activeNestedDragKey}
                     onGroupCreate={onGroupCreate}
                     onDragStart={onRootDragStart}
                     onDragRelease={onRootDragRelease}
